@@ -1,0 +1,2885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aneuploidy Annotator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;700;800;900&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #FFFFFF;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #F4F4F5;
+            padding: 24px 24px 39px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            color: #000000;
+        }
+
+        .session-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .session-name-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .session-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: #71717A;
+        }
+
+        .session-dropdown {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #E4E4E7;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000000;
+            background: #FFFFFF;
+            cursor: pointer;
+        }
+
+        .session-dropdown:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .session-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .new-session-btn {
+            flex: 1;
+            height: 40px;
+            background: #000000;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .new-session-btn:hover {
+            opacity: 0.9;
+        }
+
+        .delete-session-btn {
+            width: 40px;
+            height: 40px;
+            background: #E4E4E7;
+            color: #71717A;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-session-btn:hover {
+            background: #FF4444;
+            color: #FFFFFF;
+        }
+
+        .delete-session-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .delete-session-btn:disabled:hover {
+            background: #E4E4E7;
+            color: #71717A;
+        }
+
+        .import-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .import-csv-btn {
+            width: 100%;
+            height: 36px;
+            background: #F4F4F5;
+            color: #000000;
+            border: 1px solid #E4E4E7;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .import-csv-btn:hover {
+            background: #E4E4E7;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .nav-item.active {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .nav-item:not(.active) {
+            background: transparent;
+            color: #71717A;
+        }
+
+        .nav-item:not(.active):hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .annotation-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .annotation-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .add-event-btn {
+            height: 40px;
+            background: #000000;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .add-event-btn:hover {
+            opacity: 0.9;
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .event-card {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .event-card:hover {
+            background: #F9F9F9;
+        }
+
+        .event-card:hover .event-edit-btn {
+            display: block;
+        }
+
+        .event-card.current {
+            border: 2px solid #000000;
+            background: #F4F4F5;
+        }
+
+        .event-export-check {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: #000000;
+        }
+
+        .event-card {
+            padding-left: 32px !important;
+        }
+
+        .event-edit-btn {
+            display: none;
+            position: absolute;
+            right: 36px;
+            top: 12px;
+            width: 24px;
+            height: 24px;
+            background: #E4E4E7;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #71717A;
+            transition: all 0.2s;
+        }
+
+        .event-edit-btn:hover {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .event-time {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .event-delete {
+            width: 20px;
+            height: 20px;
+            background: #E4E4E7;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #71717A;
+            transition: background 0.2s;
+        }
+
+        .event-delete:hover {
+            background: #FF4444;
+            color: white;
+        }
+
+        .event-type {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #71717A;
+        }
+
+        .event-notes {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            color: #A1A1AA;
+        }
+
+        .event-coords {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: #FF6B6B;
+        }
+
+        .event-type-selector {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .type-selector-buttons {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .type-selector-btn {
+            width: 28px;
+            height: 28px;
+            background: #F4F4F5;
+            border: 1px solid #E4E4E7;
+            border-radius: 6px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #000000;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .type-selector-btn:hover {
+            background: #000000;
+            color: #FFFFFF;
+            border-color: #000000;
+        }
+
+        .type-options {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+
+        .type-btn {
+            height: 28px;
+            padding: 0 10px;
+            background: #F4F4F5;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: #000000;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .type-btn:hover {
+            background: #E4E4E7;
+        }
+
+        .type-btn.selected {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .export-info {
+            background: #F4F4F5;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .export-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .export-desc {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            color: #71717A;
+        }
+
+        .stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stats-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 400;
+            color: #71717A;
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            color: #000000;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #FFFFFF;
+        }
+
+        .header {
+            height: 72px;
+            padding: 0 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #F4F4F5;
+        }
+
+        .header-left {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .header-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: #000000;
+        }
+
+        .speed-control {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .speed-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #71717A;
+        }
+
+        .speed-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .export-btn {
+            height: 40px;
+            padding: 0 20px;
+            background: #000000;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .export-btn:hover {
+            opacity: 0.9;
+        }
+
+        .viewer-area {
+            flex: 1;
+            background: #F4F4F5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            min-height: 0;
+        }
+
+        .viewer-content {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            max-width: 90%;
+            max-height: 90%;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .cell-image {
+            width: 100%;
+            flex: 1;
+            background: #E4E4E7;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            color: #A1A1AA;
+            overflow: hidden;
+            position: relative;
+            min-height: 400px;
+        }
+
+        /* Zoom controls overlay */
+        .zoom-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .zoom-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #E4E4E7;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            line-height: 1;
+        }
+
+        .zoom-btn:hover { background: #fff; border-color: #000; }
+
+        .zoom-level {
+            height: 28px;
+            padding: 0 8px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #E4E4E7;
+            border-radius: 6px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            color: #71717A;
+        }
+
+        #videoPlayer {
+            display: none;
+        }
+
+        #videoCanvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            border-radius: 12px;
+            display: none;
+            z-index: 2;
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        #placeholderText {
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            color: #A1A1AA;
+            position: absolute;
+            z-index: 1;
+            text-align: center;
+            pointer-events: auto;
+            cursor: pointer;
+            padding: 20px;
+        }
+
+        #placeholderText:hover {
+            color: #000000;
+        }
+
+
+        .annotation-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #FF6B6B;
+            border: 2px solid #FFFFFF;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .annotation-marker.current {
+            width: 16px;
+            height: 16px;
+            background: #000000;
+        }
+
+        .image-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #71717A;
+        }
+
+        .timeline {
+            padding: 16px 32px 20px 32px;
+            border-top: 1px solid #F4F4F5;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .timeline-track {
+            height: 48px;
+            background: #E4E4E7;
+            border-radius: 24px;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid #D4D4D8;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #71717A 0%, #000000 100%);
+            border-radius: 24px;
+            transition: width 0.3s;
+            position: relative;
+        }
+
+        .timeline-handle {
+            width: 16px;
+            height: 16px;
+            background: #FFFFFF;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: grab;
+        }
+
+        .timeline-handle:active {
+            cursor: grabbing;
+        }
+
+        .event-marker {
+            width: 8px;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            border-radius: 4px;
+            background: #FF6B6B;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-marker:hover {
+            background: #FF4444;
+            width: 12px;
+        }
+
+        .event-marker.current {
+            background: #000000;
+            width: 12px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn {
+            height: 32px;
+            padding: 0 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .control-btn.primary {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .control-btn.secondary {
+            background: #F4F4F5;
+            color: #000000;
+        }
+
+        .control-btn:hover {
+            opacity: 0.8;
+        }
+
+        .keyboard-hint {
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            color: #A1A1AA;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 24px;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        /* Add-event panel: sits in bottom-right of main area, non-blocking */
+        #addEventModal {
+            background: none;
+            align-items: flex-end;
+            justify-content: flex-end;
+            pointer-events: none;
+        }
+
+        #addEventModal.active {
+            display: flex;
+            pointer-events: none;
+        }
+
+        #addEventModal .modal-content {
+            pointer-events: all;
+            margin: 0 32px 32px 0;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+            border: 1px solid #E4E4E7;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .pick-coords-btn {
+            width: 100%;
+            height: 36px;
+            background: #F4F4F5;
+            border: 1px dashed #A1A1AA;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #71717A;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .pick-coords-btn:hover, .pick-coords-btn.picking {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+        }
+
+        .pick-coords-btn.picked {
+            background: #F0FFF4;
+            border-color: #22C55E;
+            color: #16A34A;
+        }
+
+        .modal-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            color: #000000;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #71717A;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #E4E4E7;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            height: 36px;
+            padding: 0 16px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-btn.primary {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .modal-btn.secondary {
+            background: #F4F4F5;
+            color: #000000;
+        }
+
+        .timeline-ruler {
+            position: relative;
+            height: 16px;
+            user-select: none;
+        }
+
+        .ruler-tick {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateX(-50%);
+        }
+
+        .ruler-tick-line {
+            width: 1px;
+            height: 5px;
+            background: #D4D4D8;
+        }
+
+        .ruler-tick-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            color: #A1A1AA;
+            margin-top: 1px;
+            white-space: nowrap;
+        }
+
+        .zdim-controls {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 0 0 0;
+        }
+
+        .zdim-controls.visible {
+            display: flex;
+        }
+
+        .zdim-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .zdim-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #71717A;
+            width: 14px;
+        }
+
+        .zdim-slider {
+            flex: 1;
+            accent-color: #000000;
+            cursor: pointer;
+            height: 4px;
+        }
+
+        .zdim-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #000000;
+            min-width: 44px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo">Aneuploidy Annotator</div>
+
+            <div class="session-controls">
+                <div class="session-name-section">
+                    <label class="session-label">Current Session</label>
+                    <select class="session-dropdown" id="sessionDropdown" onchange="switchSession()">
+                        <option value="">+ New Session</option>
+                    </select>
+                </div>
+                <div class="session-buttons">
+                    <button class="new-session-btn" onclick="openNewSessionModal()">+ New Session</button>
+                    <button class="delete-session-btn" onclick="confirmDeleteSession()" title="Delete Session">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M6.5 1h3a.5.5 0 0 1 .5.5V2h2.5a.5.5 0 0 1 0 1H13v10.5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5V3H.5a.5.5 0 0 1 0-1H3v-.5A.5.5 0 0 1 3.5 1h3zM4 3v10.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V3H4zm2.5 2a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6a.5.5 0 0 1 .5-.5zm3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6a.5.5 0 0 1 .5-.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="import-section">
+                    <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+                    <button class="import-csv-btn" onclick="document.getElementById('csvImport').click()">Import CSV</button>
+                </div>
+            </div>
+
+            <div class="annotation-panel">
+                <div class="annotation-title">Quick Annotate</div>
+                <div class="type-options">
+                    <button class="type-btn" data-type="Correct division" data-key="1">1. Correct division</button>
+                    <button class="type-btn" data-type="Misaligned chromosomes" data-key="2">2. Misaligned</button>
+                    <button class="type-btn" data-type="Lagging chromosomes" data-key="3">3. Lagging</button>
+                    <button class="type-btn" data-type="Anaphase bridge" data-key="4">4. Bridge</button>
+                    <button class="type-btn" data-type="Multipolar spindles" data-key="5">5. Multipolar</button>
+                    <button class="type-btn" data-type="Micronuclei" data-key="6">6. Micron</button>
+                    <button class="type-btn" data-type="Mitosis failure" data-key="7">7. Failure</button>
+                </div>
+
+                <button class="add-event-btn" onclick="openAddEventModal()">+ Add with Notes</button>
+
+                <div class="annotation-title" style="margin-top: 8px;">All Events</div>
+                <div class="event-list" id="eventList">
+                    <!-- Events will be populated here -->
+                </div>
+
+                <div class="export-info">
+                    <div class="export-title">Export Format</div>
+                    <div class="export-desc">Frame, Event Type, X, Y, Notes</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="header">
+                <div class="header-left">
+                    <div class="header-title" id="frameTitle">Frame 1 / 180</div>
+                    <div class="speed-control">
+                        <span class="speed-label">Speed:</span>
+                        <span class="speed-value" id="speedValue">1x</span>
+                    </div>
+                </div>
+                <button class="export-btn" onclick="exportAll()">Export</button>
+            </div>
+
+            <div class="viewer-area">
+                <div class="viewer-content">
+                    <input type="file" id="reuploadVideo" accept="video/*,image/tiff,.tif,.tiff,image/png,image/jpeg,.png,.jpg,.jpeg" style="display: none;" onchange="handleReuploadVideo(event)">
+                    <div class="cell-image" id="cellImage" onclick="handleCellImageClick(event)">
+                        <span id="placeholderText">Upload a video to get started</span>
+                        <video id="videoPlayer"></video>
+                        <canvas id="videoCanvas" style="cursor: crosshair;"></canvas>
+                        <div class="zoom-controls" id="zoomControls" style="display:none">
+                            <button class="zoom-btn" onclick="adjustZoom(-0.25)" title="Zoom out">−</button>
+                            <div class="zoom-level" id="zoomLevel">100%</div>
+                            <button class="zoom-btn" onclick="adjustZoom(0.25)" title="Zoom in">+</button>
+                            <button class="zoom-btn" onclick="resetZoom()" title="Reset zoom">⊡</button>
+                        </div>
+                    </div>
+                    <div class="image-label" id="imageLabel" style="display: none;">Cell Frame #1</div>
+                </div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-label">Timeline</div>
+                <div class="timeline-ruler" id="timelineRuler"></div>
+                <div class="timeline-track" id="timelineTrack" onclick="seekTimeline(event)">
+                    <div class="timeline-progress" id="timelineProgress">
+                        <div class="timeline-handle" id="timelineHandle"></div>
+                    </div>
+                    <div id="eventMarkers"></div>
+                </div>
+                <div class="controls">
+                    <button class="control-btn secondary" onclick="skipFrames(-5)">-5</button>
+                    <button class="control-btn secondary" onclick="skipFrames(-1)">-1</button>
+                    <button class="control-btn secondary" onclick="previousFrame()">← Prev Event</button>
+                    <button class="control-btn primary" id="playBtn" onclick="togglePlay()">Play</button>
+                    <button class="control-btn secondary" onclick="nextFrame()">Next Event →</button>
+                    <button class="control-btn secondary" onclick="skipFrames(1)">+1</button>
+                    <button class="control-btn secondary" onclick="skipFrames(5)">+5</button>
+                </div>
+
+                <div class="zdim-controls" id="zdimControls">
+                    <div class="zdim-row" id="zSliceRow" style="display:none">
+                        <span class="zdim-label">Z</span>
+                        <input type="range" class="zdim-slider" id="zSliceSlider" min="1" value="1" oninput="onZSliceChange(this.value)">
+                        <span class="zdim-value" id="zSliceValue">1 / 1</span>
+                    </div>
+                    <div class="zdim-row" id="tFrameRow" style="display:none">
+                        <span class="zdim-label">T</span>
+                        <input type="range" class="zdim-slider" id="tFrameSlider" min="1" value="1" oninput="onTFrameChange(this.value)">
+                        <span class="zdim-value" id="tFrameValue">1 / 1</span>
+                    </div>
+                    <div class="zdim-row" id="cChannelRow" style="display:none">
+                        <span class="zdim-label">C</span>
+                        <input type="range" class="zdim-slider" id="cChannelSlider" min="1" value="1" oninput="onCChannelChange(this.value)">
+                        <span class="zdim-value" id="cChannelValue">1 / 1</span>
+                    </div>
+                </div>
+
+                <div class="keyboard-hint">Arrows: Events • Q/W: ±1 frame • A/S: ±5 frames • 1-7: Annotate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Session Modal -->
+    <div class="modal" id="newSessionModal">
+        <div class="modal-content">
+            <div class="modal-title">Create New Session</div>
+            <div class="form-group">
+                <label class="form-label">Session Name</label>
+                <input type="text" class="form-input" id="newSessionNameInput" placeholder="Enter session name...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Upload Video/Image (Optional)</label>
+                <input type="file" class="form-input" id="newSessionVideoInput" accept="video/*,image/tiff,.tif,.tiff,image/png,image/jpeg,.png,.jpg,.jpeg">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeNewSessionModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="createNewSession()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Event Panel (non-blocking, sits over image corner) -->
+    <div class="modal" id="addEventModal">
+        <div class="modal-content">
+            <div class="modal-title">Add Event</div>
+            <div class="form-group">
+                <label class="form-label">Event Type</label>
+                <select class="form-input" id="eventTypeInput">
+                    <option value="Correct division">Correct division</option>
+                    <option value="Misaligned chromosomes">Misaligned chromosomes</option>
+                    <option value="Lagging chromosomes">Lagging chromosomes</option>
+                    <option value="Anaphase bridge">Anaphase bridge</option>
+                    <option value="Multipolar spindles">Multipolar spindles</option>
+                    <option value="Micronuclei">Micronuclei</option>
+                    <option value="Mitosis failure">Mitosis failure</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Coordinates</label>
+                <button class="pick-coords-btn" id="pickCoordsBtn" onclick="startPickingCoords()">
+                    <span>📍</span><span id="pickCoordsBtnLabel">Click to mark on image</span>
+                </button>
+                <input type="hidden" id="eventXInput">
+                <input type="hidden" id="eventYInput">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" class="form-input" id="eventNotesInput" placeholder="Enter notes...">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeAddEventModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="addEvent()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App State
+        let currentFrame = 1;
+        let totalFrames = 180; // Will be overridden by video
+        let isPlaying = false;
+        let playInterval = null;
+        let speed = 1;
+        let events = [];
+        let selectedEventType = null;
+        let videoElement = null;
+        let canvasElement = null;
+        let canvasContext = null;
+        let hasVideo = false;
+        let pendingEventType = null;
+        let currentSessionId = null;
+        let sessions = {};
+        let videoFPS = 30; // Default FPS, will be calculated from video
+        let currentVideoFile = null; // Store the actual File object
+        let db = null; // IndexedDB database
+        let isTiffFile = false; // Track if current file is TIFF
+        let tiffIFDs = [];    // Raw IFD array from UTIF (not yet decoded)
+        let tiffBuffer = null; // ArrayBuffer for lazy per-frame decoding
+        let tiffImages = []; // Cache of decoded ImageData per IFD index
+
+        // Zoom / pan state
+        let zoomScale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPicking = false; // waiting for coord click in add-event panel
+
+        // ImageJ hyperstack dimensions
+        let ijChannels = 1;
+        let ijSlices = 1;
+        let ijFrames = 1;
+        let currentZ = 1;   // 1-based Z slice
+        let currentT = 1;   // 1-based T frame
+        let currentC = 1;   // 1-based channel
+
+        // IndexedDB Setup
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('CellAnnotatorDB', 1);
+
+                request.onerror = () => {
+                    console.error('IndexedDB error:', request.error);
+                    reject(request.error);
+                };
+
+                request.onsuccess = () => {
+                    db = request.result;
+                    console.log('IndexedDB initialized successfully');
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+
+                    // Create object store for videos
+                    if (!db.objectStoreNames.contains('videos')) {
+                        const videoStore = db.createObjectStore('videos', { keyPath: 'sessionId' });
+                        console.log('Created videos object store');
+                    }
+                };
+            });
+        }
+
+        // Store video in IndexedDB
+        function storeVideoInDB(sessionId, videoBlob) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['videos'], 'readwrite');
+                const store = transaction.objectStore('videos');
+
+                const request = store.put({
+                    sessionId: sessionId,
+                    videoBlob: videoBlob,
+                    timestamp: Date.now()
+                });
+
+                request.onsuccess = () => {
+                    console.log('Video stored in IndexedDB for session:', sessionId);
+                    resolve();
+                };
+
+                request.onerror = () => {
+                    console.error('Error storing video:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+
+        // Retrieve video from IndexedDB
+        function getVideoFromDB(sessionId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['videos'], 'readonly');
+                const store = transaction.objectStore('videos');
+                const request = store.get(sessionId);
+
+                request.onsuccess = () => {
+                    if (request.result) {
+                        console.log('Video retrieved from IndexedDB for session:', sessionId);
+                        resolve(request.result.videoBlob);
+                    } else {
+                        console.log('No video found in IndexedDB for session:', sessionId);
+                        resolve(null);
+                    }
+                };
+
+                request.onerror = () => {
+                    console.error('Error retrieving video:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+
+        // Delete video from IndexedDB
+        function deleteVideoFromDB(sessionId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['videos'], 'readwrite');
+                const store = transaction.objectStore('videos');
+                const request = store.delete(sessionId);
+
+                request.onsuccess = () => {
+                    console.log('Video deleted from IndexedDB for session:', sessionId);
+                    resolve();
+                };
+
+                request.onerror = () => {
+                    console.error('Error deleting video:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+
+        // Initialize
+        async function init() {
+            videoElement = document.getElementById('videoPlayer');
+            canvasElement = document.getElementById('videoCanvas');
+            canvasContext = canvasElement.getContext('2d');
+
+            // Initialize IndexedDB first
+            try {
+                await initIndexedDB();
+            } catch (error) {
+                console.error('Failed to initialize IndexedDB:', error);
+                alert('Warning: Video persistence may not work. Browser storage not available.');
+            }
+
+            setupKeyboardShortcuts();
+            setupTimelineDrag();
+            setupVideoClickHandler();
+            setupZoomPan();
+            loadSessions();
+            updateSessionDropdown();
+
+            // If no sessions exist, prompt to create one
+            if (Object.keys(sessions).length === 0) {
+                openNewSessionModal();
+            } else {
+                // Load the most recent session
+                const sessionIds = Object.keys(sessions);
+                currentSessionId = sessionIds[sessionIds.length - 1];
+                loadSession(currentSessionId);
+            }
+        }
+
+        // Session Management
+        function loadSessions() {
+            const stored = localStorage.getItem('cellAnnotatorSessions');
+            if (stored) {
+                sessions = JSON.parse(stored);
+            }
+        }
+
+        function saveSessions() {
+            localStorage.setItem('cellAnnotatorSessions', JSON.stringify(sessions));
+        }
+
+        function saveCurrentSession() {
+            if (!currentSessionId) return;
+
+            sessions[currentSessionId] = {
+                id: currentSessionId,
+                name: sessions[currentSessionId].name,
+                events: events,
+                currentFrame: currentFrame,
+                videoPath: sessions[currentSessionId].videoPath,
+                videoName: sessions[currentSessionId].videoName,
+                videoSize: sessions[currentSessionId].videoSize,
+                totalFrames: totalFrames,
+                videoFPS: videoFPS,
+                lastModified: new Date().toISOString()
+            };
+
+            saveSessions();
+        }
+
+        async function loadSession(sessionId) {
+            const session = sessions[sessionId];
+            if (!session) {
+                console.error('Session not found:', sessionId);
+                return;
+            }
+
+            console.log('Loading session:', session.name, 'Video path:', session.videoPath);
+
+            currentSessionId = sessionId;
+            events = session.events || [];
+            currentFrame = session.currentFrame || 1;
+            totalFrames = session.totalFrames || 180;
+            videoFPS = session.videoFPS || 30;
+
+            // Try to load file from IndexedDB
+            if (session.videoPath) {
+                try {
+                    const fileBlob = await getVideoFromDB(sessionId);
+                    if (fileBlob) {
+                        console.log('File loaded from IndexedDB');
+                        currentVideoFile = fileBlob;
+                        await loadFileIntoPlayer(fileBlob);
+                    } else {
+                        // Video not in IndexedDB, show placeholder with hint
+                        hasVideo = false;
+                        canvasElement.style.display = 'none';
+                        const videoSizeMB = session.videoSize ? ` (${(session.videoSize / (1024 * 1024)).toFixed(1)} MB)` : '';
+                        document.getElementById('placeholderText').innerHTML = `Video: ${session.videoName}${videoSizeMB}<br><span style="font-size: 13px; color: #71717A;">Click here to load the video file</span>`;
+                        document.getElementById('placeholderText').style.display = 'block';
+                        document.getElementById('imageLabel').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error loading video from IndexedDB:', error);
+                    hasVideo = false;
+                    canvasElement.style.display = 'none';
+                    document.getElementById('placeholderText').innerHTML = `Video: ${session.videoName}<br><span style="font-size: 13px; color: #71717A;">Click here to load the video file</span>`;
+                    document.getElementById('placeholderText').style.display = 'block';
+                    document.getElementById('imageLabel').style.display = 'none';
+                }
+            } else {
+                console.log('No video in session');
+                hasVideo = false;
+                canvasElement.style.display = 'none';
+                document.getElementById('placeholderText').textContent = 'Upload a video to get started';
+                document.getElementById('placeholderText').style.display = 'block';
+                document.getElementById('imageLabel').style.display = 'none';
+            }
+
+            updateSessionDropdown();
+            updateUI();
+        }
+
+        async function loadImageFile(file) {
+            console.log('=== Loading image file (non-TIFF) ===');
+            try {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+
+                img.onload = () => {
+                    const offscreen = document.createElement('canvas');
+                    offscreen.width = img.width;
+                    offscreen.height = img.height;
+                    const ctx = offscreen.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    // Store as a single cached ImageData
+                    tiffIFDs = [{}];
+                    tiffBuffer = null;
+                    tiffImages = [ctx.getImageData(0, 0, img.width, img.height)];
+                    ijChannels = 1; ijSlices = 1; ijFrames = 1;
+                    currentZ = 1; currentT = 1; currentC = 1;
+                    isTiffFile = true;
+                    hasVideo = true;
+                    totalFrames = 1;
+                    currentFrame = 1;
+
+                    canvasElement.width = img.width;
+                    canvasElement.height = img.height;
+
+                    document.getElementById('placeholderText').style.display = 'none';
+                    document.getElementById('placeholderText').style.visibility = 'hidden';
+                    canvasElement.style.display = 'block';
+                    canvasElement.style.visibility = 'visible';
+                    document.getElementById('imageLabel').style.display = 'block';
+
+                    if (currentSessionId) {
+                        sessions[currentSessionId].totalFrames = totalFrames;
+                        saveSessions();
+                    }
+
+                    updateHyperstackControls();
+                    renderTiffFrame();
+                    updateUI();
+                    URL.revokeObjectURL(url);
+                };
+
+                img.onerror = () => {
+                    console.error('Error loading image file');
+                    alert('Error loading image file');
+                    URL.revokeObjectURL(url);
+                };
+
+                img.src = url;
+            } catch (error) {
+                console.error('Error loading image file:', error);
+                alert('Error loading image file: ' + error.message);
+            }
+        }
+
+        // Parse ImageJ ImageDescription tag string into dimension object
+        function parseImageJDescription(desc) {
+            if (!desc || !desc.startsWith('ImageJ=')) return null;
+            const result = {};
+            desc.split('\n').forEach(line => {
+                const eq = line.indexOf('=');
+                if (eq !== -1) {
+                    result[line.substring(0, eq).trim()] = line.substring(eq + 1).trim();
+                }
+            });
+            return result;
+        }
+
+        // Parse OME-XML ImageDescription — returns {channels, slices, frames, dimOrder} or null
+        function parseOMEDescription(desc) {
+            if (!desc || !desc.includes('<OME') && !desc.includes('ome-tiff')) return null;
+            const attr = (name) => {
+                const m = desc.match(new RegExp(name + '="([^"]+)"'));
+                return m ? m[1] : null;
+            };
+            const sizeC = parseInt(attr('SizeC')) || 1;
+            const sizeZ = parseInt(attr('SizeZ')) || 1;
+            const sizeT = parseInt(attr('SizeT')) || 1;
+            const dimOrder = attr('DimensionOrder') || 'XYZCT'; // e.g. "XYZTC" or "XYZCT"
+            if (sizeC === 1 && sizeZ === 1 && sizeT === 1) return null; // single image, no dims to parse
+            console.log(`OME-TIFF detected: C=${sizeC} Z=${sizeZ} T=${sizeT} order=${dimOrder}`);
+            return { channels: sizeC, slices: sizeZ, frames: sizeT, dimOrder };
+        }
+
+        // Dimension order string: last two letters after XY are the "fast" axes
+        // e.g. XYZCT → axes beyond XY are Z(fast), C, T(slow)
+        // We store dimOrder as the 5-char string and compute index from it
+        let tiffDimOrder = 'XYZCT'; // default ImageJ order
+
+        async function loadTiffFile(file) {
+            console.log('=== Loading TIFF file (UTIF, lazy) ===');
+            try {
+                tiffBuffer = await file.arrayBuffer();
+                tiffIFDs = UTIF.decode(tiffBuffer);
+                tiffImages = new Array(tiffIFDs.length).fill(null); // lazy cache
+
+                console.log('TIFF IFD count:', tiffIFDs.length);
+
+                // Parse ImageJ metadata from first IFD's ImageDescription (tag 270)
+                ijChannels = 1; ijSlices = 1; ijFrames = 1;
+                currentZ = 1; currentT = 1; currentC = 1;
+                tiffDimOrder = 'XYZCT';
+
+                const firstIFD = tiffIFDs[0];
+                // UTIF stores tags as numeric string keys, e.g. "270" for ImageDescription
+                const descRaw = firstIFD['270'];
+                let desc = '';
+                if (descRaw) {
+                    if (typeof descRaw === 'string') {
+                        desc = descRaw;
+                    } else if (descRaw instanceof Uint8Array) {
+                        desc = new TextDecoder().decode(descRaw);
+                    } else if (Array.isArray(descRaw)) {
+                        desc = String.fromCharCode(...descRaw);
+                    }
+                }
+
+                // Try OME-XML first, then ImageJ
+                const omeMeta = parseOMEDescription(desc);
+                const ijMeta  = !omeMeta ? parseImageJDescription(desc) : null;
+
+                if (omeMeta) {
+                    ijChannels   = omeMeta.channels;
+                    ijSlices     = omeMeta.slices;
+                    ijFrames     = omeMeta.frames;
+                    tiffDimOrder = omeMeta.dimOrder;
+                } else if (ijMeta) {
+                    console.log('ImageJ metadata found:', ijMeta);
+                    ijChannels = parseInt(ijMeta.channels) || 1;
+                    ijSlices   = parseInt(ijMeta.slices)   || 1;
+                    ijFrames   = parseInt(ijMeta.frames)   || 1;
+                    tiffDimOrder = 'XYZCT'; // ImageJ default
+                    // Infer missing dimension from total images count
+                    const declaredImages = parseInt(ijMeta.images);
+                    if (declaredImages && declaredImages > 0) {
+                        if (!ijMeta.channels && ijSlices > 1 && ijFrames > 1)
+                            ijChannels = Math.round(declaredImages / (ijSlices * ijFrames));
+                        else if (!ijMeta.slices && ijChannels > 1 && ijFrames > 1)
+                            ijSlices = Math.round(declaredImages / (ijChannels * ijFrames));
+                        else if (!ijMeta.frames && ijChannels > 1 && ijSlices > 1)
+                            ijFrames = Math.round(declaredImages / (ijChannels * ijSlices));
+                    }
+                    console.log(`Hyperstack: C=${ijChannels} Z=${ijSlices} T=${ijFrames}`);
+                } else {
+                    // Plain multi-page TIFF — treat all IFDs as T-frames
+                    ijFrames = tiffIFDs.length;
+                    console.log(`Plain TIFF stack: ${ijFrames} frames`);
+                }
+
+                // totalFrames = T dimension for the timeline scrubber
+                // currentFrame tracks T; Z and C get their own sliders
+                isTiffFile = true;
+                hasVideo = true;
+                totalFrames = ijFrames;
+                currentFrame = 1;
+                currentZ = 1; currentT = 1; currentC = 1;
+
+                // Set canvas size from first IFD dimensions
+                const w = firstIFD.width  || firstIFD['256'] || 512;
+                const h = firstIFD.height || firstIFD['257'] || 512;
+                canvasElement.width = w;
+                canvasElement.height = h;
+
+                document.getElementById('placeholderText').style.display = 'none';
+                document.getElementById('placeholderText').style.visibility = 'hidden';
+                canvasElement.style.display = 'block';
+                canvasElement.style.visibility = 'visible';
+                document.getElementById('imageLabel').style.display = 'block';
+
+                if (currentSessionId) {
+                    sessions[currentSessionId].totalFrames = totalFrames;
+                    saveSessions();
+                }
+
+                updateHyperstackControls();
+                renderTiffFrame();
+                updateUI();
+            } catch (error) {
+                console.error('Error loading TIFF file:', error);
+                alert('Error loading TIFF file: ' + error.message);
+            }
+        }
+
+        // Compute flat IFD index respecting the file's DimensionOrder (beyond XY)
+        // DimensionOrder like "XYZCT" means after XY: Z is fastest, then C, then T (slowest)
+        function ijIndex(c, z, t) {
+            // Extract axes beyond XY (positions 2,3,4 in the 5-char string)
+            const axes = tiffDimOrder.slice(2); // e.g. "ZCT" or "ZTC" or "CTZ" etc.
+            const sizes = { C: ijChannels, Z: ijSlices, T: ijFrames };
+            const coords = { C: c - 1, Z: z - 1, T: t - 1 };
+            // axes[0] is fastest (stride 1), axes[1] next, axes[2] slowest
+            const s0 = sizes[axes[0]];
+            const s1 = sizes[axes[1]];
+            return coords[axes[0]] + coords[axes[1]] * s0 + coords[axes[2]] * s0 * s1;
+        }
+
+        // Decode a single IFD on demand (lazy), returning an ImageData
+        function decodeTiffFrame(ifdIndex) {
+            if (ifdIndex < 0 || ifdIndex >= tiffIFDs.length) return null;
+            if (tiffImages[ifdIndex]) return tiffImages[ifdIndex]; // already decoded
+
+            const ifd = tiffIFDs[ifdIndex];
+            UTIF.decodeImage(tiffBuffer, ifd);
+            const w = ifd.width;
+            const h = ifd.height;
+            const src = ifd.data; // may be 1, 2, 3, or 4 bytes per pixel
+            const npix = w * h;
+            const expectedRGBA = npix * 4;
+            let rgba;
+
+            if (src.length === expectedRGBA) {
+                // Already RGBA
+                rgba = new Uint8ClampedArray(src);
+            } else if (src.length === npix) {
+                // 8-bit grayscale → RGBA
+                rgba = new Uint8ClampedArray(expectedRGBA);
+                for (let i = 0; i < npix; i++) {
+                    const v = src[i];
+                    rgba[i*4]   = v;
+                    rgba[i*4+1] = v;
+                    rgba[i*4+2] = v;
+                    rgba[i*4+3] = 255;
+                }
+            } else if (src.length === npix * 2) {
+                // 16-bit grayscale → normalize to 8-bit RGBA
+                // Find min/max for contrast stretching
+                const u16 = new Uint16Array(src.buffer, src.byteOffset, npix);
+                let min = 65535, max = 0;
+                for (let i = 0; i < npix; i++) {
+                    if (u16[i] < min) min = u16[i];
+                    if (u16[i] > max) max = u16[i];
+                }
+                const range = max - min || 1;
+                rgba = new Uint8ClampedArray(expectedRGBA);
+                for (let i = 0; i < npix; i++) {
+                    const v = Math.round((u16[i] - min) / range * 255);
+                    rgba[i*4]   = v;
+                    rgba[i*4+1] = v;
+                    rgba[i*4+2] = v;
+                    rgba[i*4+3] = 255;
+                }
+            } else if (src.length === npix * 3) {
+                // 8-bit RGB → RGBA
+                rgba = new Uint8ClampedArray(expectedRGBA);
+                for (let i = 0; i < npix; i++) {
+                    rgba[i*4]   = src[i*3];
+                    rgba[i*4+1] = src[i*3+1];
+                    rgba[i*4+2] = src[i*3+2];
+                    rgba[i*4+3] = 255;
+                }
+            } else {
+                console.warn(`Unexpected data length ${src.length} for ${w}x${h} image, trying raw cast`);
+                rgba = new Uint8ClampedArray(expectedRGBA);
+                const len = Math.min(src.length, expectedRGBA);
+                for (let i = 0; i < len; i++) rgba[i] = src[i];
+                // Fill alpha
+                for (let i = 3; i < expectedRGBA; i += 4) rgba[i] = 255;
+            }
+
+            const imgData = new ImageData(rgba, w, h);
+            tiffImages[ifdIndex] = imgData;
+            return imgData;
+        }
+
+        function renderTiffFrame() {
+            if (!isTiffFile || tiffIFDs.length === 0) return;
+
+            const ifdIndex = ijIndex(currentC, currentZ, currentT);
+            const imgData = decodeTiffFrame(ifdIndex);
+            if (!imgData) return;
+
+            // Resize canvas if needed
+            if (canvasElement.width !== imgData.width || canvasElement.height !== imgData.height) {
+                canvasElement.width  = imgData.width;
+                canvasElement.height = imgData.height;
+            }
+
+            canvasContext.putImageData(imgData, 0, 0);
+
+            // Draw annotation markers for current T-frame
+            const currentFrameEvents = events.filter(e => e.frame === currentFrame);
+            currentFrameEvents.forEach(event => {
+                if (event.x !== undefined && event.y !== undefined) {
+                    drawMarker(event.x, event.y, false);
+                }
+            });
+        }
+
+        // Update visibility and ranges of Z/T/C sliders
+        function updateHyperstackControls() {
+            const container = document.getElementById('zdimControls');
+            const showAny = ijSlices > 1 || ijFrames > 1 || ijChannels > 1;
+            container.classList.toggle('visible', showAny && isTiffFile);
+
+            const zRow = document.getElementById('zSliceRow');
+            const tRow = document.getElementById('tFrameRow');
+            const cRow = document.getElementById('cChannelRow');
+
+            zRow.style.display = ijSlices > 1 ? 'flex' : 'none';
+            tRow.style.display = ijFrames > 1 ? 'flex' : 'none';
+            cRow.style.display = ijChannels > 1 ? 'flex' : 'none';
+
+            const zSlider = document.getElementById('zSliceSlider');
+            zSlider.max = ijSlices;
+            zSlider.value = currentZ;
+            document.getElementById('zSliceValue').textContent = `${currentZ} / ${ijSlices}`;
+
+            const tSlider = document.getElementById('tFrameSlider');
+            tSlider.max = ijFrames;
+            tSlider.value = currentT;
+            document.getElementById('tFrameValue').textContent = `${currentT} / ${ijFrames}`;
+
+            const cSlider = document.getElementById('cChannelSlider');
+            cSlider.max = ijChannels;
+            cSlider.value = currentC;
+            document.getElementById('cChannelValue').textContent = `${currentC} / ${ijChannels}`;
+        }
+
+        function onZSliceChange(val) {
+            currentZ = parseInt(val);
+            document.getElementById('zSliceValue').textContent = `${currentZ} / ${ijSlices}`;
+            renderTiffFrame();
+        }
+
+        function onTFrameChange(val) {
+            currentT = parseInt(val);
+            currentFrame = currentT; // keep timeline in sync
+            document.getElementById('tFrameValue').textContent = `${currentT} / ${ijFrames}`;
+            updateUI();
+        }
+
+        function onCChannelChange(val) {
+            currentC = parseInt(val);
+            document.getElementById('cChannelValue').textContent = `${currentC} / ${ijChannels}`;
+            renderTiffFrame();
+        }
+
+        async function loadFileIntoPlayer(file) {
+            let fileName = '';
+            if (file.name) {
+                fileName = file.name.toLowerCase();
+            } else if (currentSessionId && sessions[currentSessionId]?.videoName) {
+                fileName = sessions[currentSessionId].videoName.toLowerCase();
+            }
+
+            if (fileName.endsWith('.tif') || fileName.endsWith('.tiff')) {
+                isTiffFile = true;
+                await loadTiffFile(file);
+            } else if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+                isTiffFile = true;
+                await loadImageFile(file);
+            } else {
+                // Video file — reset hyperstack state
+                isTiffFile = false;
+                tiffIFDs = []; tiffBuffer = null; tiffImages = [];
+                ijChannels = 1; ijSlices = 1; ijFrames = 1;
+                currentZ = 1; currentT = 1; currentC = 1;
+                updateHyperstackControls();
+                const url = URL.createObjectURL(file);
+                loadVideoIntoPlayer(url);
+            }
+        }
+
+        function loadVideoIntoPlayer(url) {
+            console.log('=== loadVideoIntoPlayer called ===');
+            console.log('URL:', url ? url.substring(0, 50) + '...' : 'No URL');
+            console.log('Canvas element:', canvasElement);
+            console.log('Video element:', videoElement);
+
+            videoElement.src = url;
+            videoElement.load(); // Force reload
+
+            videoElement.onloadedmetadata = () => {
+                console.log('=== Video metadata loaded ===');
+                console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                console.log('Video duration:', videoElement.duration);
+
+                hasVideo = true;
+                isTiffFile = false;
+                updateHyperstackControls();
+
+                // Hide placeholder completely
+                const placeholder = document.getElementById('placeholderText');
+                placeholder.style.display = 'none';
+                placeholder.style.visibility = 'hidden';
+
+                // Show canvas
+                canvasElement.style.display = 'block';
+                canvasElement.style.visibility = 'visible';
+                console.log('Canvas display set to:', canvasElement.style.display);
+
+                // Show label
+                document.getElementById('imageLabel').style.display = 'block';
+
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+                console.log('Canvas size set to:', canvasElement.width, 'x', canvasElement.height);
+
+                // Calculate total frames from video duration
+                totalFrames = Math.floor(videoElement.duration * videoFPS);
+                console.log('Total frames calculated:', totalFrames);
+
+                // Save updated frame count to session
+                if (currentSessionId && sessions[currentSessionId]) {
+                    sessions[currentSessionId].totalFrames = totalFrames;
+                    saveSessions();
+                }
+
+                console.log('About to render video frame...');
+                renderVideoFrame();
+                updateUI();
+            };
+
+            videoElement.onerror = (e) => {
+                console.error('=== Error loading video ===', e);
+                console.error('Video error code:', videoElement.error?.code);
+                console.error('Video error message:', videoElement.error?.message);
+                hasVideo = false;
+                canvasElement.style.display = 'none';
+                document.getElementById('placeholderText').style.display = 'block';
+                document.getElementById('imageLabel').style.display = 'none';
+                alert('Error loading video. The video may be too large or corrupted.');
+            };
+        }
+
+        function switchSession() {
+            const dropdown = document.getElementById('sessionDropdown');
+            const sessionId = dropdown.value;
+
+            if (!sessionId) {
+                openNewSessionModal();
+                return;
+            }
+
+            loadSession(sessionId);
+        }
+
+        function updateSessionDropdown() {
+            const dropdown = document.getElementById('sessionDropdown');
+            dropdown.innerHTML = '<option value="">+ New Session</option>';
+
+            Object.values(sessions).forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.id;
+                option.textContent = session.name;
+                option.selected = session.id === currentSessionId;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // New Session Modal
+        function openNewSessionModal() {
+            document.getElementById('newSessionModal').classList.add('active');
+            document.getElementById('newSessionNameInput').value = '';
+            document.getElementById('newSessionVideoInput').value = '';
+        }
+
+        function closeNewSessionModal() {
+            document.getElementById('newSessionModal').classList.remove('active');
+            // Restore dropdown to current session
+            updateSessionDropdown();
+        }
+
+        async function createNewSession() {
+            const name = document.getElementById('newSessionNameInput').value.trim();
+            if (!name) {
+                alert('Please enter a session name');
+                return;
+            }
+
+            const sessionId = Date.now().toString();
+            const videoInput = document.getElementById('newSessionVideoInput');
+
+            sessions[sessionId] = {
+                id: sessionId,
+                name: name,
+                events: [],
+                currentFrame: 1,
+                videoPath: null,
+                videoName: null,
+                videoSize: null,
+                totalFrames: 180,
+                videoFPS: 30,
+                lastModified: new Date().toISOString()
+            };
+
+            if (videoInput.files.length > 0) {
+                const file = videoInput.files[0];
+                currentVideoFile = file;
+
+                // Store video metadata
+                sessions[sessionId].videoPath = file.webkitRelativePath || file.name;
+                sessions[sessionId].videoName = file.name;
+                sessions[sessionId].videoSize = file.size;
+
+                // Store file blob in IndexedDB
+                try {
+                    await storeVideoInDB(sessionId, file);
+                    console.log('File stored in IndexedDB for new session');
+                } catch (error) {
+                    console.error('Failed to store file in IndexedDB:', error);
+                }
+
+                closeNewSessionModal();
+                currentSessionId = sessionId;
+
+                // Reset state for new session
+                events = [];
+                currentFrame = 1;
+                totalFrames = 180;
+                videoFPS = 30;
+
+                saveSessions();
+                updateSessionDropdown();
+                await loadFileIntoPlayer(file);
+            } else {
+                closeNewSessionModal();
+                saveSessions();
+                loadSession(sessionId);
+            }
+        }
+
+        // CSV Import
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!currentSessionId) {
+                alert('Please select or create a session first');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+
+                // Skip header row
+                const dataLines = lines.slice(1).filter(line => line.trim());
+
+                let importedCount = 0;
+                dataLines.forEach(line => {
+                    // Parse CSV line (handle quoted fields)
+                    const matches = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+                    if (!matches || matches.length < 2) return;
+
+                    const frame = parseInt(matches[0]);
+                    const type = matches[1] ? matches[1].replace(/^"|"$/g, '').trim() : '';
+                    const x = matches[2] ? (matches[2].trim() ? parseInt(matches[2]) : undefined) : undefined;
+                    const y = matches[3] ? (matches[3].trim() ? parseInt(matches[3]) : undefined) : undefined;
+                    const notes = matches[4] ? matches[4].replace(/^"|"$/g, '').trim() : '';
+
+                    // Allow events with empty type names
+                    if (!isNaN(frame)) {
+                        events.push({
+                            id: Date.now() + Math.random(),
+                            frame: frame,
+                            type: type || '(No type)',
+                            x: x,
+                            y: y,
+                            notes: notes
+                        });
+                        importedCount++;
+                    }
+                });
+
+                alert(`Successfully imported ${importedCount} annotation(s)`);
+                updateUI();
+
+                // Reset file input
+                event.target.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        // Handle cell image click to reupload video
+        function handleCellImageClick(event) {
+            console.log('Cell image clicked, target:', event.target.id);
+            console.log('hasVideo:', hasVideo);
+            console.log('currentSessionId:', currentSessionId);
+            console.log('session videoPath:', sessions[currentSessionId]?.videoPath);
+
+            // Don't trigger if clicking on canvas (when video is loaded)
+            if (event.target.id === 'videoCanvas') {
+                return;
+            }
+
+            if (!hasVideo && currentSessionId) {
+                // Video needs to be loaded
+                console.log('Opening file picker...');
+                document.getElementById('reuploadVideo').click();
+            }
+        }
+
+        // Handle video re-upload
+        async function handleReuploadVideo(event) {
+            const file = event.target.files[0];
+            if (file && currentSessionId) {
+                currentVideoFile = file;
+                sessions[currentSessionId].videoPath = file.webkitRelativePath || file.name;
+                sessions[currentSessionId].videoName = file.name;
+                sessions[currentSessionId].videoSize = file.size;
+
+                // Store file in IndexedDB
+                try {
+                    await storeVideoInDB(currentSessionId, file);
+                    console.log('File stored in IndexedDB during re-upload');
+                } catch (error) {
+                    console.error('Failed to store file in IndexedDB:', error);
+                }
+
+                await loadFileIntoPlayer(file);
+
+                saveSessions();
+                event.target.value = '';
+            }
+        }
+
+        // Delete session with confirmation
+        function confirmDeleteSession() {
+            if (!currentSessionId) {
+                alert('No session selected to delete');
+                return;
+            }
+
+            const session = sessions[currentSessionId];
+            const confirmMsg = `Are you sure you want to delete "${session.name}"?\n\nThis will permanently delete:\n- ${events.length} annotation(s)\n- Video (if uploaded)\n\nThis action cannot be undone.`;
+
+            if (confirm(confirmMsg)) {
+                deleteSession(currentSessionId);
+            }
+        }
+
+        async function deleteSession(sessionId) {
+            // Delete video from IndexedDB
+            try {
+                await deleteVideoFromDB(sessionId);
+                console.log('Video deleted from IndexedDB for session:', sessionId);
+            } catch (error) {
+                console.error('Failed to delete video from IndexedDB:', error);
+            }
+
+            delete sessions[sessionId];
+            saveSessions();
+
+            // Load another session or prompt to create one
+            const remainingSessions = Object.keys(sessions);
+            if (remainingSessions.length > 0) {
+                loadSession(remainingSessions[remainingSessions.length - 1]);
+            } else {
+                // No sessions left, reset state
+                currentSessionId = null;
+                events = [];
+                currentFrame = 1;
+                hasVideo = false;
+                canvasElement.style.display = 'none';
+                document.getElementById('placeholderText').style.display = 'block';
+                document.getElementById('imageLabel').style.display = 'none';
+                updateSessionDropdown();
+                updateUI();
+                openNewSessionModal();
+            }
+        }
+
+        // Render current video frame
+        function renderVideoFrame() {
+            // If it's a TIFF file, use TIFF rendering
+            if (isTiffFile) {
+                renderTiffFrame();
+                return;
+            }
+
+            console.log('=== renderVideoFrame called ===');
+            console.log('hasVideo:', hasVideo);
+            console.log('video duration:', videoElement.duration);
+            console.log('currentFrame:', currentFrame);
+
+            if (!hasVideo || !videoElement.duration) {
+                console.log('Exiting - no video or duration');
+                return;
+            }
+
+            // Calculate frame time
+            const frameTime = Math.max(0, (currentFrame - 1) / videoFPS);
+            console.log('Seeking to time:', frameTime);
+
+            // Clamp to video duration
+            videoElement.currentTime = Math.min(frameTime, videoElement.duration - 0.001);
+
+            videoElement.onseeked = () => {
+                console.log('=== Video seeked, drawing to canvas ===');
+                console.log('Canvas context:', canvasContext);
+                console.log('Canvas dimensions:', canvasElement.width, 'x', canvasElement.height);
+
+                canvasContext.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasContext.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+                console.log('Frame drawn to canvas');
+
+                // Draw annotation markers
+                const currentFrameEvents = events.filter(e => e.frame === currentFrame);
+                console.log('Drawing', currentFrameEvents.length, 'markers');
+                currentFrameEvents.forEach(event => {
+                    if (event.x !== undefined && event.y !== undefined) {
+                        drawMarker(event.x, event.y, false);
+                    }
+                });
+            };
+        }
+
+        // Draw annotation marker on canvas
+        function drawMarker(x, y, isCurrent) {
+            canvasContext.save();
+            canvasContext.beginPath();
+            canvasContext.arc(x, y, isCurrent ? 8 : 6, 0, 2 * Math.PI);
+            canvasContext.fillStyle = isCurrent ? '#000000' : '#FF6B6B';
+            canvasContext.fill();
+            canvasContext.strokeStyle = '#FFFFFF';
+            canvasContext.lineWidth = 2;
+            canvasContext.stroke();
+            canvasContext.restore();
+        }
+
+        // Setup video click handler
+        // Convert a click on the canvas (at current zoom/pan) to image pixel coords
+        function canvasClickToImageCoords(e) {
+            const rect = canvasElement.getBoundingClientRect();
+            // rect is the displayed (CSS) size of the canvas after transform
+            // But getBoundingClientRect already accounts for CSS transforms, so:
+            const cssX = e.clientX - rect.left;
+            const cssY = e.clientY - rect.top;
+            // canvas.width/height are the logical pixel dims
+            const scaleX = canvasElement.width  / rect.width;
+            const scaleY = canvasElement.height / rect.height;
+            return {
+                x: Math.round(cssX * scaleX),
+                y: Math.round(cssY * scaleY)
+            };
+        }
+
+        function setupVideoClickHandler() {
+            canvasElement.addEventListener('click', (e) => {
+                if (!hasVideo) return;
+
+                // Coord-picking mode for Add Event panel
+                if (isPicking) {
+                    const coords = canvasClickToImageCoords(e);
+                    document.getElementById('eventXInput').value = coords.x;
+                    document.getElementById('eventYInput').value = coords.y;
+                    isPicking = false;
+                    canvasElement.style.cursor = 'crosshair';
+                    const btn = document.getElementById('pickCoordsBtn');
+                    btn.classList.remove('picking');
+                    btn.classList.add('picked');
+                    document.getElementById('pickCoordsBtnLabel').textContent = `(${coords.x}, ${coords.y}) — click to repick`;
+                    return;
+                }
+
+                if (!pendingEventType) return;
+
+                const coords = canvasClickToImageCoords(e);
+                addEventWithCoords(pendingEventType, coords.x, coords.y);
+                pendingEventType = null;
+                document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
+            });
+        }
+
+        // ── Zoom / Pan ────────────────────────────────────────────────────────
+
+        function applyZoomTransform() {
+            canvasElement.style.transform =
+                `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoomScale})`;
+            const zoomLabel = document.getElementById('zoomLevel');
+            if (zoomLabel) zoomLabel.textContent = Math.round(zoomScale * 100) + '%';
+            if (!isPicking) {
+                canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+            }
+        }
+
+        function adjustZoom(delta) {
+            zoomScale = Math.max(0.25, Math.min(8, zoomScale + delta));
+            applyZoomTransform();
+        }
+
+        function resetZoom() {
+            zoomScale = 1; panX = 0; panY = 0;
+            applyZoomTransform();
+        }
+
+        function setupZoomPan() {
+            const container = document.getElementById('cellImage');
+
+            // Wheel to zoom, centered on cursor
+            container.addEventListener('wheel', (e) => {
+                if (!hasVideo) return;
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                const prevScale = zoomScale;
+                zoomScale = Math.max(0.25, Math.min(8, zoomScale + delta));
+
+                // Adjust pan so zoom centers on mouse position
+                const rect = container.getBoundingClientRect();
+                const mx = e.clientX - rect.left - rect.width  / 2;
+                const my = e.clientY - rect.top  - rect.height / 2;
+                const scaleFactor = zoomScale / prevScale;
+                panX = mx + (panX - mx) * scaleFactor;
+                panY = my + (panY - my) * scaleFactor;
+
+                applyZoomTransform();
+            }, { passive: false });
+
+            // Drag to pan (only when zoomed in)
+            let dragStartX = 0, dragStartY = 0, dragStartPanX = 0, dragStartPanY = 0, isDragging = false;
+
+            container.addEventListener('mousedown', (e) => {
+                if (!hasVideo || zoomScale <= 1) return;
+                if (e.target !== canvasElement) return;
+                isDragging = true;
+                dragStartX = e.clientX; dragStartY = e.clientY;
+                dragStartPanX = panX;   dragStartPanY = panY;
+                canvasElement.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                panX = dragStartPanX + (e.clientX - dragStartX);
+                panY = dragStartPanY + (e.clientY - dragStartY);
+                applyZoomTransform();
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                canvasElement.style.cursor = isPicking ? 'crosshair' : (zoomScale > 1 ? 'grab' : 'crosshair');
+            });
+        }
+
+        // Start picking coordinates for the Add Event panel
+        function startPickingCoords() {
+            isPicking = true;
+            canvasElement.style.cursor = 'crosshair';
+            const btn = document.getElementById('pickCoordsBtn');
+            btn.classList.add('picking');
+            btn.classList.remove('picked');
+            document.getElementById('pickCoordsBtnLabel').textContent = 'Click on image to mark…';
+        }
+
+
+        // Update UI
+        function updateUI() {
+            const zoomControls = document.getElementById('zoomControls');
+            if (zoomControls) zoomControls.style.display = hasVideo ? 'flex' : 'none';
+
+            if (hasVideo) {
+                let titleText = `Frame ${currentFrame} / ${totalFrames}`;
+                if (isTiffFile && ijSlices > 1) {
+                    titleText += `  |  Z ${currentZ}/${ijSlices}`;
+                }
+                if (isTiffFile && ijChannels > 1) {
+                    titleText += `  C ${currentC}/${ijChannels}`;
+                }
+                document.getElementById('frameTitle').textContent = titleText;
+                document.getElementById('imageLabel').textContent = `Cell Frame #${currentFrame}`;
+                document.getElementById('imageLabel').style.display = 'block';
+            } else {
+                document.getElementById('frameTitle').textContent = 'No Video Loaded';
+                document.getElementById('imageLabel').style.display = 'none';
+            }
+
+            // Keep T slider in sync with currentFrame
+            if (isTiffFile && ijFrames > 1) {
+                currentT = currentFrame;
+                const tSlider = document.getElementById('tFrameSlider');
+                tSlider.value = currentT;
+                document.getElementById('tFrameValue').textContent = `${currentT} / ${ijFrames}`;
+            }
+
+            // Update timeline
+            const progress = hasVideo ? (currentFrame / totalFrames) * 100 : 0;
+            document.getElementById('timelineProgress').style.width = progress + '%';
+
+            // Update cell image or video
+            if (hasVideo) {
+                renderVideoFrame();
+            }
+
+            // Render events
+            renderEvents();
+            renderEventMarkers();
+            renderTimelineRuler();
+
+            // Autosave
+            saveCurrentSession();
+        }
+
+        // Render events
+        function renderEvents() {
+            const eventList = document.getElementById('eventList');
+            eventList.innerHTML = '';
+
+            // Group events by frame
+            const eventsByFrame = {};
+            events.forEach(event => {
+                if (!eventsByFrame[event.frame]) {
+                    eventsByFrame[event.frame] = [];
+                }
+                eventsByFrame[event.frame].push(event);
+            });
+
+            // Sort frames descending
+            const sortedFrames = Object.keys(eventsByFrame).sort((a, b) => b - a);
+
+            sortedFrames.forEach(frame => {
+                const frameEvents = eventsByFrame[frame];
+
+                frameEvents.forEach((event, index) => {
+                    const eventCard = document.createElement('div');
+                    eventCard.className = `event-card ${event.frame === currentFrame ? 'current' : ''}`;
+                    const notesHTML = event.notes ? `<div class="event-notes">${event.notes}</div>` : '';
+                    const coordsHTML = (event.x !== undefined && event.y !== undefined)
+                        ? `<div class="event-coords">@ (${event.x}, ${event.y})</div>`
+                        : '';
+
+                    // Check if event has no type or has "(No type)"
+                    const hasNoType = !event.type || event.type === '(No type)' || event.type.trim() === '';
+
+                    let typeHTML;
+                    if (hasNoType) {
+                        // Show type selector buttons
+                        typeHTML = `
+                            <div class="event-type-selector">
+                                <div style="font-size: 11px; color: #71717A; margin-bottom: 6px;">Select type:</div>
+                                <div class="type-selector-buttons">
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Correct division')" title="Correct division">1</button>
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Misaligned chromosomes')" title="Misaligned chromosomes">2</button>
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Lagging chromosomes')" title="Lagging chromosomes">3</button>
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Anaphase bridge')" title="Anaphase bridge">4</button>
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Multipolar spindles')" title="Multipolar spindles">5</button>
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Micronuclei')" title="Micronuclei">6</button>
+                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Mitosis failure')" title="Mitosis failure">7</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        typeHTML = `<div class="event-type">${event.type}</div>`;
+                    }
+
+                    eventCard.innerHTML = `
+                        <input type="checkbox" class="event-export-check" ${event.exportFrame ? 'checked' : ''}
+                            onclick="event.stopPropagation(); toggleEventExport('${event.id}', this.checked)" title="Export frame image">
+                        <div class="event-header">
+                            <span class="event-time">Frame ${event.frame}</span>
+                            <button class="event-edit-btn" onclick="event.stopPropagation(); editEvent('${event.id}')">✎</button>
+                            <div class="event-delete" onclick="event.stopPropagation(); deleteEvent('${event.id}')">×</div>
+                        </div>
+                        ${typeHTML}
+                        ${coordsHTML}
+                        ${notesHTML}
+                    `;
+                    eventCard.onclick = (e) => {
+                        if (!e.target.classList.contains('event-delete') &&
+                            !e.target.classList.contains('event-edit-btn') &&
+                            !e.target.classList.contains('type-selector-btn') &&
+                            e.target.type !== 'checkbox') {
+                            currentFrame = event.frame;
+                            updateUI();
+                        }
+                    };
+                    eventList.appendChild(eventCard);
+                });
+            });
+        }
+
+        // Render event markers on timeline
+        function renderEventMarkers() {
+            const markersContainer = document.getElementById('eventMarkers');
+            markersContainer.innerHTML = '';
+
+            events.forEach(event => {
+                const marker = document.createElement('div');
+                marker.className = `event-marker ${event.frame === currentFrame ? 'current' : ''}`;
+                marker.style.left = `calc(${(event.frame / totalFrames) * 100}% - 4px)`;
+                marker.title = `Frame ${event.frame}: ${event.type}`;
+                marker.onclick = () => {
+                    currentFrame = event.frame;
+                    updateUI();
+                };
+                markersContainer.appendChild(marker);
+            });
+        }
+
+        // Navigation - jump between events
+        function nextFrame() {
+            const sortedEvents = [...events].sort((a, b) => a.frame - b.frame);
+            const nextEvent = sortedEvents.find(e => e.frame > currentFrame);
+
+            if (nextEvent) {
+                currentFrame = nextEvent.frame;
+                updateUI();
+            }
+        }
+
+        function previousFrame() {
+            const sortedEvents = [...events].sort((a, b) => b.frame - a.frame);
+            const prevEvent = sortedEvents.find(e => e.frame < currentFrame);
+
+            if (prevEvent) {
+                currentFrame = prevEvent.frame;
+                updateUI();
+            }
+        }
+
+        // Skip frames by amount
+        function skipFrames(amount) {
+            currentFrame = Math.max(1, Math.min(totalFrames, currentFrame + amount));
+            updateUI();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const playBtn = document.getElementById('playBtn');
+
+            if (isPlaying) {
+                playBtn.textContent = 'Pause';
+                playInterval = setInterval(() => {
+                    if (currentFrame < totalFrames) {
+                        currentFrame++;
+                        updateUI();
+                    } else {
+                        togglePlay();
+                    }
+                }, 1000 / speed);
+            } else {
+                playBtn.textContent = 'Play';
+                clearInterval(playInterval);
+            }
+        }
+
+        function seekTimeline(event) {
+            const track = document.getElementById('timelineTrack');
+            const rect = track.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percent = x / rect.width;
+            currentFrame = Math.max(1, Math.min(totalFrames, Math.round(percent * totalFrames)));
+            updateUI();
+        }
+
+        // Timeline drag
+        function setupTimelineDrag() {
+            const handle = document.getElementById('timelineHandle');
+            const track = document.getElementById('timelineTrack');
+            let isDragging = false;
+
+            handle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const rect = track.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percent = Math.max(0, Math.min(1, x / rect.width));
+                    currentFrame = Math.max(1, Math.min(totalFrames, Math.round(percent * totalFrames)));
+                    updateUI();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        // Events
+        function openAddEventModal() {
+            document.getElementById('addEventModal').classList.add('active');
+
+            if (!editingEventId) {
+                document.getElementById('eventNotesInput').value = '';
+                document.getElementById('eventXInput').value = '';
+                document.getElementById('eventYInput').value = '';
+                document.querySelector('#addEventModal .modal-title').textContent = 'Add Event';
+                document.querySelector('#addEventModal .modal-btn.primary').textContent = 'Add';
+                const btn = document.getElementById('pickCoordsBtn');
+                btn.classList.remove('picking', 'picked');
+                document.getElementById('pickCoordsBtnLabel').textContent = 'Click to mark on image';
+            } else {
+                // Editing — show existing coords if any
+                const x = document.getElementById('eventXInput').value;
+                const y = document.getElementById('eventYInput').value;
+                const btn = document.getElementById('pickCoordsBtn');
+                if (x && y) {
+                    btn.classList.add('picked');
+                    document.getElementById('pickCoordsBtnLabel').textContent = `(${x}, ${y}) — click to repick`;
+                } else {
+                    btn.classList.remove('picking', 'picked');
+                    document.getElementById('pickCoordsBtnLabel').textContent = 'Click to mark on image';
+                }
+            }
+        }
+
+        function closeAddEventModal() {
+            document.getElementById('addEventModal').classList.remove('active');
+            isPicking = false;
+            canvasElement.style.cursor = 'crosshair';
+            editingEventId = null;
+            document.querySelector('#addEventModal .modal-title').textContent = 'Add Event';
+            document.querySelector('#addEventModal .modal-btn.primary').textContent = 'Add';
+        }
+
+        function addEvent() {
+            const type = document.getElementById('eventTypeInput').value;
+            const notes = document.getElementById('eventNotesInput').value;
+            const x = document.getElementById('eventXInput').value;
+            const y = document.getElementById('eventYInput').value;
+
+            if (editingEventId) {
+                // Update existing event
+                const eventIndex = events.findIndex(e => e.id === editingEventId);
+                if (eventIndex !== -1) {
+                    events[eventIndex] = {
+                        ...events[eventIndex],
+                        type: type,
+                        x: x ? parseInt(x) : undefined,
+                        y: y ? parseInt(y) : undefined,
+                        notes: notes || ''
+                    };
+                }
+            } else {
+                // Add new event
+                events.push({
+                    id: Date.now() + Math.random(),
+                    frame: currentFrame,
+                    type: type,
+                    x: x ? parseInt(x) : undefined,
+                    y: y ? parseInt(y) : undefined,
+                    notes: notes || ''
+                });
+            }
+
+            closeAddEventModal();
+            updateUI();
+        }
+
+        function deleteEvent(eventId) {
+            // Convert to number if it's a string
+            const numericId = typeof eventId === 'string' ? parseFloat(eventId) : eventId;
+            const index = events.findIndex(e => e.id === numericId);
+            if (index !== -1) {
+                events.splice(index, 1);
+                updateUI();
+            }
+        }
+
+        function setEventType(eventId, type) {
+            // Convert to number if it's a string
+            const numericId = typeof eventId === 'string' ? parseFloat(eventId) : eventId;
+            const event = events.find(e => e.id === numericId);
+            if (event) {
+                event.type = type;
+                updateUI();
+            }
+        }
+
+        // Event type quick select
+        function addEventByType(type) {
+            if (hasVideo) {
+                // Set pending event type and wait for user to click on video
+                pendingEventType = type;
+                document.querySelectorAll('.type-btn').forEach(btn => {
+                    if (btn.dataset.type === type) {
+                        btn.classList.add('selected');
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                });
+            } else {
+                // Quick add event without coordinates
+                addEventWithCoords(type, undefined, undefined);
+            }
+        }
+
+        function addEventWithCoords(type, x, y) {
+            events.push({
+                id: Date.now() + Math.random(),
+                frame: currentFrame,
+                type: type,
+                x: x,
+                y: y,
+                notes: ''
+            });
+
+            updateUI();
+        }
+
+        document.querySelectorAll('.type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                addEventByType(btn.dataset.type);
+            });
+        });
+
+        // Edit specific event by ID
+        let editingEventId = null;
+
+        function editEvent(eventId) {
+            // Convert to number if it's a string
+            const numericId = typeof eventId === 'string' ? parseFloat(eventId) : eventId;
+            const event = events.find(e => e.id === numericId);
+            if (!event) return;
+
+            editingEventId = numericId;
+            document.getElementById('eventTypeInput').value = event.type;
+            document.getElementById('eventNotesInput').value = event.notes || '';
+            document.getElementById('eventXInput').value = event.x || '';
+            document.getElementById('eventYInput').value = event.y || '';
+
+            // Change modal title to indicate editing
+            document.querySelector('#addEventModal .modal-title').textContent = 'Edit Event';
+            document.querySelector('#addEventModal .modal-btn.primary').textContent = 'Update';
+
+            openAddEventModal();
+        }
+
+        // Edit current event (first event at current frame)
+        function editCurrentEvent() {
+            const currentFrameEvents = events.filter(e => e.frame === currentFrame);
+            if (currentFrameEvents.length > 0) {
+                editEvent(currentFrameEvents[0].id);
+            }
+        }
+
+        function toggleEventExport(eventId, checked) {
+            const numericId = typeof eventId === 'string' ? parseFloat(eventId) : eventId;
+            const ev = events.find(e => e.id === numericId);
+            if (ev) {
+                ev.exportFrame = checked;
+                saveCurrentSession();
+            }
+        }
+
+        // Render frame number ruler above timeline
+        function renderTimelineRuler() {
+            const ruler = document.getElementById('timelineRuler');
+            if (!ruler || !hasVideo || totalFrames <= 1) {
+                if (ruler) ruler.innerHTML = '';
+                return;
+            }
+
+            ruler.innerHTML = '';
+            const rulerWidth = ruler.getBoundingClientRect().width;
+            if (rulerWidth === 0) return;
+
+            // Aim for ticks ~60px apart, snapped to nice intervals
+            const rawStep = totalFrames / (rulerWidth / 60);
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            const nice = [1, 2, 5, 10];
+            const step = nice.map(n => n * magnitude).find(n => n >= rawStep) || magnitude * 10;
+
+            for (let f = step; f <= totalFrames; f += step) {
+                const pct = f / totalFrames * 100;
+                const tick = document.createElement('div');
+                tick.className = 'ruler-tick';
+                tick.style.left = pct + '%';
+                tick.innerHTML = `<div class="ruler-tick-line"></div><div class="ruler-tick-label">${f}</div>`;
+                ruler.appendChild(tick);
+            }
+        }
+
+        // Capture a specific TIFF frame (c, z, t) to a PNG blob
+        function captureFrameImage(t, z, c) {
+            const savedT = currentT, savedZ = currentZ, savedC = currentC;
+            currentT = t; currentZ = z; currentC = c;
+            const ifdIndex = ijIndex(currentC, currentZ, currentT);
+            const imgData = decodeTiffFrame(ifdIndex);
+            currentT = savedT; currentZ = savedZ; currentC = savedC;
+            if (!imgData) return null;
+
+            const offscreen = document.createElement('canvas');
+            offscreen.width = imgData.width;
+            offscreen.height = imgData.height;
+            offscreen.getContext('2d').putImageData(imgData, 0, 0);
+            return new Promise(resolve => offscreen.toBlob(resolve, 'image/png'));
+        }
+
+        // Capture current video frame to a PNG blob
+        function captureVideoFrameImage(frame) {
+            return new Promise(resolve => {
+                if (!hasVideo || isTiffFile) { resolve(null); return; }
+                const savedFrame = currentFrame;
+                const frameTime = Math.max(0, (frame - 1) / videoFPS);
+                videoElement.currentTime = Math.min(frameTime, videoElement.duration - 0.001);
+                videoElement.onseeked = () => {
+                    const offscreen = document.createElement('canvas');
+                    offscreen.width = videoElement.videoWidth;
+                    offscreen.height = videoElement.videoHeight;
+                    offscreen.getContext('2d').drawImage(videoElement, 0, 0);
+                    offscreen.toBlob(blob => {
+                        currentFrame = savedFrame;
+                        renderVideoFrame();
+                        resolve(blob);
+                    }, 'image/png');
+                };
+            });
+        }
+
+        async function exportAll() {
+            if (!currentSessionId || !sessions[currentSessionId]) {
+                alert('No active session to export');
+                return;
+            }
+
+            const session = sessions[currentSessionId];
+            const sortedEvents = [...events].sort((a, b) => a.frame - b.frame);
+            const sessionName = session.name;
+            const sanitizedName = sessionName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toTimeString().split(' ')[0].substring(0, 5).replace(/:/g, '-');
+            const exportTime = now.toISOString();
+            const folderName = `${sanitizedName}-${date}-${time}`;
+
+            const zip = new JSZip();
+            const folder = zip.folder(folderName);
+
+            // CSV
+            let csv = 'Frame,Event Type,X,Y,Notes,ExportFrame\n';
+            sortedEvents.forEach(ev => {
+                const x = ev.x !== undefined ? ev.x : '';
+                const y = ev.y !== undefined ? ev.y : '';
+                csv += `${ev.frame},"${ev.type}",${x},${y},"${ev.notes || ''}",${ev.exportFrame ? 'yes' : 'no'}\n`;
+            });
+            folder.file(`${sanitizedName}.csv`, csv);
+
+            // Metadata
+            const videoSizeMB = session.videoSize ? (session.videoSize / (1024 * 1024)).toFixed(2) : 'Unknown';
+            let metadata = `Session: ${sessionName}\nExport Date: ${exportTime}\n`;
+            metadata += `\n=== Video Information ===\n`;
+            metadata += `Video Name: ${session.videoName || 'No video'}\nVideo Size: ${videoSizeMB} MB\n`;
+            metadata += `Total Frames: ${session.totalFrames}\nFrame Rate: ${session.videoFPS} FPS\n`;
+            metadata += `\n=== Annotation Statistics ===\n`;
+            metadata += `Total Annotations: ${events.length}\nFrames Annotated: ${new Set(events.map(e => e.frame)).size}\n`;
+            const typeCounts = {};
+            events.forEach(ev => { typeCounts[ev.type] = (typeCounts[ev.type] || 0) + 1; });
+            metadata += `\n=== Events by Type ===\n`;
+            Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+                metadata += `${type}: ${count}\n`;
+            });
+            folder.file(`${sanitizedName}_meta.txt`, metadata);
+
+            // Frame images for checked events
+            const checkedEvents = sortedEvents.filter(ev => ev.exportFrame);
+            if (checkedEvents.length > 0) {
+                const imagesFolder = folder.folder('frames');
+                for (const ev of checkedEvents) {
+                    try {
+                        let blob = null;
+                        if (isTiffFile) {
+                            blob = await captureFrameImage(ev.frame, currentZ, currentC);
+                        } else {
+                            blob = await captureVideoFrameImage(ev.frame);
+                        }
+                        if (blob) {
+                            const sanitizedType = (ev.type || 'unknown').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                            const imgName = `${sanitizedName}_frame${ev.frame}_${sanitizedType}.png`;
+                            imagesFolder.file(imgName, blob);
+                        }
+                    } catch (err) {
+                        console.error('Error capturing frame', ev.frame, err);
+                    }
+                }
+            }
+
+            // Generate and download zip
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipUrl = window.URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = zipUrl;
+            link.download = `${folderName}.zip`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(zipUrl);
+            }, 500);
+        }
+
+        // Keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            const eventTypes = [
+                'Correct division',
+                'Misaligned chromosomes',
+                'Lagging chromosomes',
+                'Anaphase bridge',
+                'Multipolar spindles',
+                'Micronuclei',
+                'Mitosis failure'
+            ];
+
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+                // Event navigation
+                if (e.key === 'ArrowRight') {
+                    nextFrame();
+                } else if (e.key === 'ArrowLeft') {
+                    previousFrame();
+                }
+                // Frame skipping
+                else if (e.key === 'w' || e.key === 'W') {
+                    skipFrames(1);
+                } else if (e.key === 'q' || e.key === 'Q') {
+                    skipFrames(-1);
+                } else if (e.key === 's' || e.key === 'S') {
+                    skipFrames(5);
+                } else if (e.key === 'a' || e.key === 'A') {
+                    skipFrames(-5);
+                }
+                // Play/pause
+                else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+                // Number keys for event types (1-7)
+                else if (e.key >= '1' && e.key <= '7') {
+                    const index = parseInt(e.key) - 1;
+                    addEventByType(eventTypes[index]);
+                }
+                // Modal controls
+                else if (e.key === 'n' || e.key === 'N') {
+                    openAddEventModal();
+                } else if (e.key === 'Escape') {
+                    closeAddEventModal();
+                }
+                // Edit current event
+                else if (e.key === 'e' || e.key === 'E') {
+                    const currentFrameEvents = events.filter(ev => ev.frame === currentFrame);
+                    if (currentFrameEvents.length > 0) {
+                        editCurrentEvent();
+                    }
+                }
+                // Delete current event
+                else if (e.key === 'Delete' || e.key === 'Backspace') {
+                    const currentFrameEvents = events.filter(ev => ev.frame === currentFrame);
+                    if (currentFrameEvents.length > 0) {
+                        e.preventDefault();
+                        deleteEvent(currentFrameEvents[0].id);
+                    }
+                }
+            });
+        }
+
+        // Re-render ruler on resize
+        window.addEventListener('resize', renderTimelineRuler);
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
