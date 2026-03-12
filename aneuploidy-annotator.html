@@ -492,6 +492,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            position: relative;
         }
 
         .speed-label {
@@ -506,6 +507,62 @@
             font-size: 14px;
             font-weight: 700;
             color: #000000;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+
+        .speed-value:hover {
+            background: #E4E4E7;
+        }
+
+        .speed-popover {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FFFFFF;
+            border: 1px solid #E4E4E7;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            padding: 12px 16px;
+            z-index: 100;
+            width: 200px;
+            gap: 8px;
+            flex-direction: column;
+        }
+
+        .speed-popover.open {
+            display: flex;
+        }
+
+        .speed-popover-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .speed-popover-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            color: #71717A;
+        }
+
+        .speed-popover-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+            min-width: 32px;
+            text-align: right;
+        }
+
+        .speed-slider {
+            width: 100%;
+            accent-color: #000;
+            cursor: pointer;
         }
 
         .export-btn {
@@ -532,7 +589,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px;
+            padding: 20px;
             min-height: 0;
         }
 
@@ -544,8 +601,8 @@
             flex-direction: column;
             gap: 12px;
             align-items: center;
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 98%;
+            max-height: 98%;
             width: 100%;
             height: 100%;
             position: relative;
@@ -569,14 +626,82 @@
         }
 
         /* Zoom controls overlay */
-        .zoom-controls {
+        .image-controls {
             position: absolute;
             bottom: 10px;
             right: 10px;
             display: flex;
-            gap: 4px;
+            flex-direction: column;
+            gap: 6px;
             z-index: 10;
+            align-items: flex-end;
         }
+
+        .zoom-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .brightness-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #E4E4E7;
+            border-radius: 6px;
+            padding: 0 8px;
+            height: 28px;
+        }
+
+        .brightness-icon {
+            font-size: 13px;
+            line-height: 1;
+            color: #71717A;
+        }
+
+        .brightness-slider {
+            width: 80px;
+            accent-color: #000;
+            cursor: pointer;
+        }
+
+        .brightness-reset {
+            font-size: 11px;
+            color: #A1A1AA;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+        .brightness-reset:hover { color: #000; }
+
+        .quartile-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+        }
+
+        .quartile-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #E4E4E7;
+            border-radius: 5px;
+            font-size: 9px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            color: #71717A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quartile-btn:hover { background: #fff; border-color: #000; color: #000; }
+        .quartile-btn.active { background: #000; color: #fff; border-color: #000; }
 
         .zoom-btn {
             width: 28px;
@@ -616,8 +741,6 @@
 
         #videoCanvas {
             position: absolute;
-            top: 50%;
-            left: 50%;
             max-width: 100%;
             max-height: 100%;
             width: auto;
@@ -625,7 +748,7 @@
             border-radius: 12px;
             display: none;
             z-index: 2;
-            transform-origin: center center;
+            transform-origin: top left;
             will-change: transform;
         }
 
@@ -1051,7 +1174,19 @@
                     <div class="header-title" id="frameTitle">Frame 1 / 180</div>
                     <div class="speed-control">
                         <span class="speed-label">Speed:</span>
-                        <span class="speed-value" id="speedValue">1x</span>
+                        <span class="speed-value" id="speedValue" onclick="toggleSpeedPopover(event)">1x</span>
+                        <div class="speed-popover" id="speedPopover">
+                            <div class="speed-popover-row">
+                                <span class="speed-popover-label">Playback speed</span>
+                                <span class="speed-popover-val" id="speedPopoverVal">1x</span>
+                            </div>
+                            <input type="range" class="speed-slider" id="speedSlider"
+                                min="-4" max="4" step="1" value="0"
+                                oninput="onSpeedSliderChange(this.value)">
+                            <div class="speed-popover-row" style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; justify-content:space-between;">
+                                <span>0.0625x</span><span>1x</span><span>16x</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <button class="export-btn" onclick="exportAll()">Export</button>
@@ -1064,11 +1199,25 @@
                         <span id="placeholderText">Upload a video to get started</span>
                         <video id="videoPlayer"></video>
                         <canvas id="videoCanvas" style="cursor: crosshair;"></canvas>
-                        <div class="zoom-controls" id="zoomControls" style="display:none">
-                            <button class="zoom-btn" onclick="adjustZoom(-0.25)" title="Zoom out">−</button>
-                            <div class="zoom-level" id="zoomLevel">100%</div>
-                            <button class="zoom-btn" onclick="adjustZoom(0.25)" title="Zoom in">+</button>
-                            <button class="zoom-btn" onclick="resetZoom()" title="Reset zoom">⊡</button>
+                        <div class="image-controls" id="imageControls" style="display:none">
+                            <div class="brightness-control">
+                                <span class="brightness-icon">☀</span>
+                                <input type="range" class="brightness-slider" id="brightnessSlider"
+                                    min="0" max="300" value="100" oninput="onBrightnessChange(this.value)">
+                                <button class="brightness-reset" onclick="resetBrightness()" title="Reset brightness">↺</button>
+                            </div>
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" onclick="adjustZoom(-0.25)" title="Zoom out">−</button>
+                                <div class="zoom-level" id="zoomLevel">100%</div>
+                                <button class="zoom-btn" onclick="adjustZoom(0.25)" title="Zoom in">+</button>
+                                <button class="zoom-btn" onclick="resetZoom()" title="Reset zoom">⊡</button>
+                            </div>
+                            <div class="quartile-controls" id="quartileControls">
+                                <button class="quartile-btn" id="qTL" onclick="zoomToQuartile('TL')" title="Top-left">↖</button>
+                                <button class="quartile-btn" id="qTR" onclick="zoomToQuartile('TR')" title="Top-right">↗</button>
+                                <button class="quartile-btn" id="qBL" onclick="zoomToQuartile('BL')" title="Bottom-left">↙</button>
+                                <button class="quartile-btn" id="qBR" onclick="zoomToQuartile('BR')" title="Bottom-right">↘</button>
+                            </div>
                         </div>
                     </div>
                     <div class="image-label" id="imageLabel" style="display: none;">Cell Frame #1</div>
@@ -1200,6 +1349,8 @@
         let panX = 0;
         let panY = 0;
         let isPicking = false; // waiting for coord click in add-event panel
+        let brightness = 100; // CSS brightness %
+        let activeQuartile = null; // 'TL'|'TR'|'BL'|'BR'|null
 
         // ImageJ hyperstack dimensions
         let ijChannels = 1;
@@ -1693,13 +1844,20 @@
             const imgData = decodeTiffFrame(ifdIndex);
             if (!imgData) return;
 
-            // Resize canvas if needed
+            // Always restore to full size first (in case we were in quartile mode)
             if (canvasElement.width !== imgData.width || canvasElement.height !== imgData.height) {
                 canvasElement.width  = imgData.width;
                 canvasElement.height = imgData.height;
             }
 
             canvasContext.putImageData(imgData, 0, 0);
+
+            // Re-apply quartile crop if active
+            if (activeQuartile) {
+                fullImageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                enterQuartile(activeQuartile);
+                return; // enterQuartile calls resetZoom which calls applyZoomTransform
+            }
 
             // Draw annotation markers for current T-frame
             const currentFrameEvents = events.filter(e => e.frame === currentFrame);
@@ -2129,6 +2287,12 @@
                         drawMarker(event.x, event.y, false);
                     }
                 });
+
+                // Re-apply quartile crop if active
+                if (activeQuartile) {
+                    fullImageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                    enterQuartile(activeQuartile);
+                }
             };
         }
 
@@ -2192,8 +2356,20 @@
         // ── Zoom / Pan ────────────────────────────────────────────────────────
 
         function applyZoomTransform() {
-            canvasElement.style.transform =
-                `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoomScale})`;
+            const container = document.getElementById('cellImage');
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            const nw = canvasElement.offsetWidth;
+            const nh = canvasElement.offsetHeight;
+            // Position canvas top-left so its center sits at container center, then apply pan.
+            // transform-origin: top left → scale(s) expands canvas right+down from its top-left.
+            // Visible top-left of the scaled canvas = canvas top-left position.
+            // Center canvas at scale s: top-left = (cw/2 - nw*s/2, ch/2 - nh*s/2)
+            const left = cw / 2 - (nw * zoomScale) / 2 + panX;
+            const top  = ch / 2 - (nh * zoomScale) / 2 + panY;
+            canvasElement.style.left = left + 'px';
+            canvasElement.style.top  = top  + 'px';
+            canvasElement.style.transform = `scale(${zoomScale})`;
             const zoomLabel = document.getElementById('zoomLevel');
             if (zoomLabel) zoomLabel.textContent = Math.round(zoomScale * 100) + '%';
             if (!isPicking) {
@@ -2202,7 +2378,8 @@
         }
 
         function adjustZoom(delta) {
-            zoomScale = Math.max(0.25, Math.min(8, zoomScale + delta));
+            zoomScale = Math.max(1, Math.min(8, zoomScale + delta));
+            panX = 0; panY = 0;
             applyZoomTransform();
         }
 
@@ -2211,24 +2388,91 @@
             applyZoomTransform();
         }
 
+        // ── Brightness ───────────────────────────────────────────────────────
+
+        function onBrightnessChange(val) {
+            brightness = parseInt(val);
+            canvasElement.style.filter = `brightness(${brightness}%)`;
+        }
+
+        function resetBrightness() {
+            brightness = 100;
+            document.getElementById('brightnessSlider').value = 100;
+            canvasElement.style.filter = 'brightness(100%)';
+        }
+
+        // ── Quartile zoom ────────────────────────────────────────────────────
+        // Crop the canvas to exactly the chosen quarter. Normal zoom/pan then works on it.
+
+        let fullImageData = null; // saved full-frame ImageData while in quartile mode
+
+        function enterQuartile(q) {
+            // Save full image
+            fullImageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            const fw = fullImageData.width;
+            const fh = fullImageData.height;
+            const col = (q === 'TR' || q === 'BR') ? 1 : 0;
+            const row = (q === 'BL' || q === 'BR') ? 1 : 0;
+            const sx = col * Math.floor(fw / 2);
+            const sy = row * Math.floor(fh / 2);
+            const sw = Math.floor(fw / 2);
+            const sh = Math.floor(fh / 2);
+            // Crop: build new ImageData from the quarter region
+            const cropped = new ImageData(sw, sh);
+            for (let y = 0; y < sh; y++) {
+                const srcRow = (sy + y) * fw * 4;
+                const dstRow = y * sw * 4;
+                cropped.data.set(fullImageData.data.subarray(srcRow + sx * 4, srcRow + sx * 4 + sw * 4), dstRow);
+            }
+            canvasElement.width  = sw;
+            canvasElement.height = sh;
+            canvasContext.putImageData(cropped, 0, 0);
+            resetZoom();
+        }
+
+        function exitQuartile() {
+            if (!fullImageData) return;
+            canvasElement.width  = fullImageData.width;
+            canvasElement.height = fullImageData.height;
+            canvasContext.putImageData(fullImageData, 0, 0);
+            fullImageData = null;
+            resetZoom();
+        }
+
+        function zoomToQuartile(q) {
+            const btn = document.getElementById('q' + q);
+            if (activeQuartile === q) {
+                activeQuartile = null;
+                document.querySelectorAll('.quartile-btn').forEach(b => b.classList.remove('active'));
+                exitQuartile();
+                return;
+            }
+            // Switching quartiles: exit current first
+            if (activeQuartile) exitQuartile();
+            activeQuartile = q;
+            document.querySelectorAll('.quartile-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            enterQuartile(q);
+        }
+
         function setupZoomPan() {
             const container = document.getElementById('cellImage');
 
-            // Wheel to zoom, centered on cursor
+            // Wheel to zoom, centered on cursor (or quartile center when active)
             container.addEventListener('wheel', (e) => {
                 if (!hasVideo) return;
                 e.preventDefault();
                 const delta = e.deltaY < 0 ? 0.15 : -0.15;
                 const prevScale = zoomScale;
-                zoomScale = Math.max(0.25, Math.min(8, zoomScale + delta));
+                zoomScale = Math.max(1, Math.min(8, zoomScale + delta));
 
-                // Adjust pan so zoom centers on mouse position
+                // Zoom centered on cursor
                 const rect = container.getBoundingClientRect();
-                const mx = e.clientX - rect.left - rect.width  / 2;
-                const my = e.clientY - rect.top  - rect.height / 2;
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
                 const scaleFactor = zoomScale / prevScale;
-                panX = mx + (panX - mx) * scaleFactor;
-                panY = my + (panY - my) * scaleFactor;
+                panX = mx - rect.width  / 2 + (panX - (mx - rect.width  / 2)) * scaleFactor;
+                panY = my - rect.height / 2 + (panY - (my - rect.height / 2)) * scaleFactor;
 
                 applyZoomTransform();
             }, { passive: false });
@@ -2273,8 +2517,9 @@
 
         // Update UI
         function updateUI() {
-            const zoomControls = document.getElementById('zoomControls');
-            if (zoomControls) zoomControls.style.display = hasVideo ? 'flex' : 'none';
+            const imageControls = document.getElementById('imageControls');
+            if (imageControls) imageControls.style.display = hasVideo ? 'flex' : 'none';
+            if (hasVideo) applyZoomTransform();
 
             if (hasVideo) {
                 let titleText = `Frame ${currentFrame} / ${totalFrames}`;
@@ -2460,6 +2705,36 @@
                 clearInterval(playInterval);
             }
         }
+
+        // ── Speed control ────────────────────────────────────────────────────
+
+        // Slider is an integer from -4 to 4; speed = 2^value (so 0→1x, 1→2x, -1→0.5x, etc.)
+        function onSpeedSliderChange(val) {
+            const exp = parseInt(val);
+            speed = Math.pow(2, exp);
+            const label = speed < 1 ? (speed).toFixed(4).replace(/\.?0+$/, '') + 'x'
+                                    : speed + 'x';
+            document.getElementById('speedValue').textContent = label;
+            document.getElementById('speedPopoverVal').textContent = label;
+            // Restart interval if playing so new speed takes effect
+            if (isPlaying) {
+                clearInterval(playInterval);
+                playInterval = setInterval(() => {
+                    if (currentFrame < totalFrames) { currentFrame++; updateUI(); }
+                    else { togglePlay(); }
+                }, 1000 / speed);
+            }
+        }
+
+        function toggleSpeedPopover(e) {
+            e.stopPropagation();
+            document.getElementById('speedPopover').classList.toggle('open');
+        }
+
+        // Close popover when clicking outside
+        document.addEventListener('click', () => {
+            document.getElementById('speedPopover')?.classList.remove('open');
+        });
 
         function seekTimeline(event) {
             const track = document.getElementById('timelineTrack');
