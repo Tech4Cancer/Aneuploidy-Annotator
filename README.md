@@ -13,6 +13,9 @@ A browser-based tool for annotating mitotic abnormalities in microscopy videos a
 - **Precise coordinate marking** — Click directly on the image to place annotations; coordinates stored in image-pixel space
 - **Hyperstack navigation** — Z-slice, T-frame, and Channel sliders auto-appear for multi-dimensional TIFFs
 - **Zoom & pan** — Scroll to zoom (centered on cursor), drag to pan; coordinate mapping stays accurate at any zoom level
+- **Quartile view** — Crop to any exact quarter of the image (TL/TR/BL/BR) for close inspection; zoom and pan within the cropped view
+- **Brightness control** — Non-destructive brightness slider with reset
+- **Playback speed** — Clickable speed indicator opens a slider (0.0625× – 16×)
 - **Session management** — Multiple named sessions, auto-saved in browser storage (IndexedDB); survives page reloads
 - **Export** — Downloads a `.zip` containing a CSV of all annotations, a metadata summary, and PNG frame images for selected events
 - **Lazy TIFF decoding** — Frames are decoded on demand, making large files (1 GB+) practical to work with
@@ -26,8 +29,6 @@ No installation required. Just open the file in a browser:
 1. Download [`aneuploidy-annotator.html`](aneuploidy-annotator.html)
 2. Open it in **Chrome** (recommended) or any modern browser
 3. Click **+ New Session**, give it a name, and upload your file
-
-> For a full walkthrough see [`user-guide.pdf`](user-guide.pdf)
 
 ---
 
@@ -75,9 +76,18 @@ The header shows current position: `Frame 5 / 100  |  Z 3/10  C 1/2`
 
 ### Zoom & Pan
 
-- **Scroll** to zoom in/out centered on the cursor
+- **Scroll** to zoom in/out centered on the cursor (minimum 100%)
 - **Click + drag** to pan when zoomed in
 - Use the **− +** buttons (bottom-right of image) or **⊡** to reset
+- **Quartile buttons** (↖ ↗ ↙ ↘) crop to the exact image quarter for close inspection — zoom and pan work within the cropped view; click the same button again to exit
+
+### Brightness
+
+Click the **☀** slider (bottom-right overlay) to adjust brightness non-destructively. Click **↺** to reset.
+
+### Playback Speed
+
+Click the **speed indicator** (e.g. `1x`) next to the frame counter to open a speed slider. Range: 0.0625× to 16× in powers of 2.
 
 ### Exporting
 
