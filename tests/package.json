@@ -1,0 +1,47 @@
+{
+  "name": "aneuploidy-annotator",
+  "version": "1.0.0",
+  "description": "Interactive web-based annotator for cell division abnormalities in microscopy imagery",
+  "main": "aneuploidy-annotator.html",
+  "scripts": {
+    "test": "node test-runner.js",
+    "test:sessions": "node test-sessions.js",
+    "test:navigation": "node test-navigation.js",
+    "test:annotations": "node test-annotations.js",
+    "test:import": "node test-import.js",
+    "test:visualization": "node test-visualization.js",
+    "test:export": "node test-export.js",
+    "test:watch": "nodemon --exec 'npm test'",
+    "serve": "npx http-server .."
+  },
+  "keywords": [
+    "microscopy",
+    "cell-division",
+    "annotation",
+    "aneuploidy",
+    "tracking",
+    "TIFF",
+    "image-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "utif": "^3.1.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.15.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/t4c-genomics/aneuploidy-annotator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/t4c-genomics/aneuploidy-annotator/issues"
+  },
+  "homepage": "https://github.com/t4c-genomics/aneuploidy-annotator#readme"
+}

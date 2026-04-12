@@ -1,0 +1,10 @@
+frame,type,x,y,notes
+10,Correct division,100,200,Good mitosis event
+25,Misaligned chromosomes,150,250,Chromosomes not aligned at metaphase plate
+50,Lagging chromosomes,200,300,Chromosome lagging during anaphase
+75,Anaphase bridge,250,350,Dicentric chromosome formation
+100,Multipolar spindles,300,400,Multiple spindle poles observed
+125,Micronuclei,350,450,Small nuclear fragment present
+150,Mitosis failure,400,500,Failed cytokinesis
+175,Correct division,450,550,Another normal division event
+200,Misaligned,500,600,Misalignment at spindle equator
