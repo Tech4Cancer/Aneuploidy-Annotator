@@ -381,8 +381,7 @@
         }
 
         .type-selector-btn:hover {
-            background: #000000;
-            color: #FFFFFF;
+            background: #E4E4E7;
             border-color: #000000;
         }
 
@@ -2727,7 +2726,7 @@
                 pendingEventType = null;
                 document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
                 // Reset cursor based on zoom level
-                canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+                canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
             });
 
             // Hide coordinates when mouse leaves canvas
@@ -2756,7 +2755,7 @@
             const zoomLabel = document.getElementById('zoomLevel');
             if (zoomLabel) zoomLabel.textContent = Math.round(zoomScale * 100) + '%';
             if (!isPicking && !pendingEventType && !isRepImageMode) {
-                canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+                canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
             } else if (pendingEventType || isRepImageMode) {
                 canvasElement.style.cursor = 'crosshair';
             } else if (isPicking) {
@@ -2897,7 +2896,7 @@
                 if (isPicking || pendingEventType || isRepImageMode) {
                     canvasElement.style.cursor = 'crosshair';
                 } else {
-                    canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+                    canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
                 }
             });
         }
