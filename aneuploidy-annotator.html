@@ -2426,7 +2426,7 @@
             repImageDrawing = false;
             repImageStart = null;
             repImageEnd = null;
-            canvasElement.style.cursor = 'crosshair';
+            canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
             if (isTiffFile) {
                 renderTiffFrame();
             } else {
