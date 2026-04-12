@@ -3307,6 +3307,7 @@
             if (hasVideo) {
                 // Set pending event type and wait for user to click on video
                 pendingEventType = type;
+                canvasElement.style.cursor = 'crosshair';
                 document.querySelectorAll('.type-btn').forEach(btn => {
                     if (btn.dataset.type === type) {
                         btn.classList.add('selected');
