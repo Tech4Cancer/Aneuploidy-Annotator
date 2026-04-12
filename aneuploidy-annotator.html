@@ -223,6 +223,9 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            overflow-y: auto;
+            max-height: 420px;
+            padding-right: 2px;
         }
 
         .event-card {
@@ -366,6 +369,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .type-selector-btn.active {
+            background: #000000;
+            color: #FFFFFF;
         }
 
         .type-selector-btn:hover {
@@ -612,7 +620,6 @@
             width: 100%;
             flex: 1;
             background: #E4E4E7;
-            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -745,9 +752,17 @@
             max-height: 100%;
             width: auto;
             height: auto;
-            border-radius: 12px;
             display: none;
             z-index: 2;
+            transform-origin: top left;
+            will-change: transform;
+        }
+
+        #markerCanvas {
+            position: absolute;
+            display: none;
+            z-index: 3;
+            pointer-events: none;
             transform-origin: top left;
             will-change: transform;
         }
@@ -795,6 +810,22 @@
             color: #71717A;
         }
 
+        .cursor-coords {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: #000000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #E4E4E7;
+            pointer-events: none;
+            z-index: 10;
+        }
+
         .timeline {
             padding: 16px 32px 20px 32px;
             border-top: 1px solid #F4F4F5;
@@ -813,7 +844,7 @@
         .timeline-track {
             height: 48px;
             background: #E4E4E7;
-            border-radius: 24px;
+            border-radius: 2px;
             position: relative;
             cursor: pointer;
             border: 2px solid #D4D4D8;
@@ -822,7 +853,7 @@
         .timeline-progress {
             height: 100%;
             background: linear-gradient(90deg, #71717A 0%, #000000 100%);
-            border-radius: 24px;
+            border-radius: 2px;
             transition: width 0.3s;
             position: relative;
         }
@@ -1113,6 +1144,42 @@
             min-width: 44px;
             text-align: right;
         }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            display: none;
+        }
+
+        .loading-spinner.visible {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #E4E4E7;
+            border-top-color: #000000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #000000;
+        }
     </style>
 </head>
 <body>
@@ -1139,24 +1206,24 @@
                 <div class="import-section">
                     <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
                     <button class="import-csv-btn" onclick="document.getElementById('csvImport').click()">Import CSV</button>
+                    <input type="file" id="trackastraImport" accept=".csv" style="display: none;" onchange="handleTrackastraImport(event)">
+                    <button class="import-csv-btn" onclick="document.getElementById('trackastraImport').click()">Import Trackastra CSV</button>
                 </div>
             </div>
 
             <div class="annotation-panel">
                 <div class="annotation-title">Quick Annotate</div>
                 <div class="type-options">
-                    <button class="type-btn" data-type="Correct division" data-key="1">1. Correct division</button>
-                    <button class="type-btn" data-type="Misaligned chromosomes" data-key="2">2. Misaligned</button>
-                    <button class="type-btn" data-type="Lagging chromosomes" data-key="3">3. Lagging</button>
-                    <button class="type-btn" data-type="Anaphase bridge" data-key="4">4. Bridge</button>
-                    <button class="type-btn" data-type="Multipolar spindles" data-key="5">5. Multipolar</button>
-                    <button class="type-btn" data-type="Micronuclei" data-key="6">6. Micron</button>
-                    <button class="type-btn" data-type="Mitosis failure" data-key="7">7. Failure</button>
+                    <button class="type-btn" data-type="Correct division" data-key="1" style="background-color: #D1FAE5; border-left: 4px solid #10B981;">1. Correct division</button>
+                    <button class="type-btn" data-type="Misaligned chromosomes" data-key="2" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B;">2. Misaligned</button>
+                    <button class="type-btn" data-type="Lagging chromosomes" data-key="3" style="background-color: #FFECEB; border-left: 4px solid #EF4444;">3. Lagging</button>
+                    <button class="type-btn" data-type="Anaphase bridge" data-key="4" style="background-color: #E0E7FF; border-left: 4px solid #6366F1;">4. Bridge</button>
+                    <button class="type-btn" data-type="Multipolar spindles" data-key="5" style="background-color: #FCE7F3; border-left: 4px solid #EC4899;">5. Multipolar</button>
+                    <button class="type-btn" data-type="Micronuclei" data-key="6" style="background-color: #DDD6FE; border-left: 4px solid #8B5CF6;">6. Micron</button>
+                    <button class="type-btn" data-type="Mitosis failure" data-key="7" style="background-color: #F3E8FF; border-left: 4px solid #A855F7;">7. Failure</button>
                 </div>
 
-                <button class="add-event-btn" onclick="openAddEventModal()">+ Add with Notes</button>
-
-                <div class="annotation-title" style="margin-top: 8px;">All Events</div>
+                <div class="annotation-title" style="margin-top: 8px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
                 <div class="event-list" id="eventList">
                     <!-- Events will be populated here -->
                 </div>
@@ -1189,7 +1256,10 @@
                         </div>
                     </div>
                 </div>
-                <button class="export-btn" onclick="exportAll()">Export</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="export-btn" onclick="startRepImageMode()" style="flex: 1;">Rep. Image</button>
+                    <button class="export-btn" onclick="exportAll()" style="flex: 1;">Export</button>
+                </div>
             </div>
 
             <div class="viewer-area">
@@ -1199,6 +1269,11 @@
                         <span id="placeholderText">Upload a video to get started</span>
                         <video id="videoPlayer"></video>
                         <canvas id="videoCanvas" style="cursor: crosshair;"></canvas>
+                        <canvas id="markerCanvas" style="position:absolute;top:0;left:0;pointer-events:none;"></canvas>
+                        <div class="loading-spinner" id="loadingSpinner">
+                            <div class="spinner"></div>
+                            <div class="spinner-text">Loading...</div>
+                        </div>
                         <div class="image-controls" id="imageControls" style="display:none">
                             <div class="brightness-control">
                                 <span class="brightness-icon">☀</span>
@@ -1221,6 +1296,7 @@
                         </div>
                     </div>
                     <div class="image-label" id="imageLabel" style="display: none;">Cell Frame #1</div>
+                    <div class="cursor-coords" id="cursorCoords" style="display: none;">X: 0, Y: 0</div>
                 </div>
             </div>
 
@@ -1261,7 +1337,7 @@
                     </div>
                 </div>
 
-                <div class="keyboard-hint">Arrows: Events • Q/W: ±1 frame • A/S: ±5 frames • 1-7: Annotate</div>
+                <div class="keyboard-hint">Arrows: Events • &lt; &gt;: ±1 frame • Space: Play/Pause • 1-7: Annotate • N: Add • E: Edit • Delete: Remove</div>
             </div>
         </div>
     </div>
@@ -1323,6 +1399,7 @@
     <script>
         // App State
         let currentFrame = 1;
+        let currentEventId = null; // tracks which specific event is selected
         let totalFrames = 180; // Will be overridden by video
         let isPlaying = false;
         let playInterval = null;
@@ -1332,6 +1409,8 @@
         let videoElement = null;
         let canvasElement = null;
         let canvasContext = null;
+        let markerCanvas = null;
+        let markerContext = null;
         let hasVideo = false;
         let pendingEventType = null;
         let currentSessionId = null;
@@ -1349,8 +1428,14 @@
         let panX = 0;
         let panY = 0;
         let isPicking = false; // waiting for coord click in add-event panel
+        let isRepImageMode = false; // in rectangle drawing mode
         let brightness = 100; // CSS brightness %
         let activeQuartile = null; // 'TL'|'TR'|'BL'|'BR'|null
+        let quartileOffsetX = 0; // x offset of cropped region in full image
+        let quartileOffsetY = 0; // y offset of cropped region in full image
+        let repImageDrawing = false; // currently drawing a rectangle
+        let repImageStart = null; // {x, y} start point
+        let repImageEnd = null;   // {x, y} current/end point
 
         // ImageJ hyperstack dimensions
         let ijChannels = 1;
@@ -1460,6 +1545,8 @@
             videoElement = document.getElementById('videoPlayer');
             canvasElement = document.getElementById('videoCanvas');
             canvasContext = canvasElement.getContext('2d');
+            markerCanvas = document.getElementById('markerCanvas');
+            markerContext = markerCanvas.getContext('2d');
 
             // Initialize IndexedDB first
             try {
@@ -1775,10 +1862,26 @@
             if (tiffImages[ifdIndex]) return tiffImages[ifdIndex]; // already decoded
 
             const ifd = tiffIFDs[ifdIndex];
-            UTIF.decodeImage(tiffBuffer, ifd);
+            try {
+                UTIF.decodeImage(tiffBuffer, ifd);
+            } catch (error) {
+                console.error('Error decoding TIFF frame:', error);
+                // Try to use raw data if available, otherwise create blank frame
+                if (!ifd.data) {
+                    const w = ifd.width || 512;
+                    const h = ifd.height || 512;
+                    ifd.data = new Uint8Array(w * h);
+                }
+            }
             const w = ifd.width;
             const h = ifd.height;
             const src = ifd.data; // may be 1, 2, 3, or 4 bytes per pixel
+            if (!src) {
+                // Return blank frame
+                const blankData = new Uint8ClampedArray(w * h * 4);
+                for (let i = 3; i < blankData.length; i += 4) blankData[i] = 255;
+                return new ImageData(blankData, w, h);
+            }
             const npix = w * h;
             const expectedRGBA = npix * 4;
             let rgba;
@@ -1859,13 +1962,6 @@
                 return; // enterQuartile calls resetZoom which calls applyZoomTransform
             }
 
-            // Draw annotation markers for current T-frame
-            const currentFrameEvents = events.filter(e => e.frame === currentFrame);
-            currentFrameEvents.forEach(event => {
-                if (event.x !== undefined && event.y !== undefined) {
-                    drawMarker(event.x, event.y, false);
-                }
-            });
         }
 
         // Update visibility and ranges of Z/T/C sliders
@@ -1917,29 +2013,48 @@
             renderTiffFrame();
         }
 
-        async function loadFileIntoPlayer(file) {
-            let fileName = '';
-            if (file.name) {
-                fileName = file.name.toLowerCase();
-            } else if (currentSessionId && sessions[currentSessionId]?.videoName) {
-                fileName = sessions[currentSessionId].videoName.toLowerCase();
+        function showLoadingSpinner() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.classList.add('visible');
             }
+        }
 
-            if (fileName.endsWith('.tif') || fileName.endsWith('.tiff')) {
-                isTiffFile = true;
-                await loadTiffFile(file);
-            } else if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
-                isTiffFile = true;
-                await loadImageFile(file);
-            } else {
-                // Video file — reset hyperstack state
-                isTiffFile = false;
-                tiffIFDs = []; tiffBuffer = null; tiffImages = [];
-                ijChannels = 1; ijSlices = 1; ijFrames = 1;
-                currentZ = 1; currentT = 1; currentC = 1;
-                updateHyperstackControls();
-                const url = URL.createObjectURL(file);
-                loadVideoIntoPlayer(url);
+        function hideLoadingSpinner() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.classList.remove('visible');
+            }
+        }
+
+        async function loadFileIntoPlayer(file) {
+            showLoadingSpinner();
+            try {
+                let fileName = '';
+                if (file.name) {
+                    fileName = file.name.toLowerCase();
+                } else if (currentSessionId && sessions[currentSessionId]?.videoName) {
+                    fileName = sessions[currentSessionId].videoName.toLowerCase();
+                }
+
+                if (fileName.endsWith('.tif') || fileName.endsWith('.tiff')) {
+                    isTiffFile = true;
+                    await loadTiffFile(file);
+                } else if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+                    isTiffFile = true;
+                    await loadImageFile(file);
+                } else {
+                    // Video file — reset hyperstack state
+                    isTiffFile = false;
+                    tiffIFDs = []; tiffBuffer = null; tiffImages = [];
+                    ijChannels = 1; ijSlices = 1; ijFrames = 1;
+                    currentZ = 1; currentT = 1; currentC = 1;
+                    updateHyperstackControls();
+                    const url = URL.createObjectURL(file);
+                    loadVideoIntoPlayer(url);
+                }
+            } finally {
+                hideLoadingSpinner();
             }
         }
 
@@ -2089,6 +2204,7 @@
                 // Reset state for new session
                 events = [];
                 currentFrame = 1;
+                currentEventId = null;
                 totalFrames = 180;
                 videoFPS = 30;
 
@@ -2156,7 +2272,114 @@
             reader.readAsText(file);
         }
 
+        // Trackastra CSV Import
+        function handleTrackastraImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!currentSessionId) {
+                alert('Please select or create a session first');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const lines = csv.split(/\r?\n/);
+                if (lines.length < 2) return;
+
+                // Parse header to find column indices
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                const idxFrame = headers.indexOf('frame');
+                const idxX = headers.indexOf('x');
+                const idxY = headers.indexOf('y');
+                const idxMitosis = headers.indexOf('mitosis');
+                const idxTrackId = headers.indexOf('track_id');
+
+                if (idxFrame === -1 || idxX === -1 || idxY === -1 || idxMitosis === -1 || idxTrackId === -1) {
+                    alert('CSV missing required columns: track_id, frame, x, y, mitosis');
+                    event.target.value = '';
+                    return;
+                }
+
+                // For each mitosis track, collect the row with the minimum frame
+                const trackFirstRow = {}; // track_id -> {frame, x, y}
+
+                lines.slice(1).forEach(line => {
+                    if (!line.trim()) return;
+                    // Parse CSV respecting quoted fields
+                    const cols = [];
+                    let cur = '', inQuote = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const ch = line[i];
+                        if (ch === '"') { inQuote = !inQuote; }
+                        else if (ch === ',' && !inQuote) { cols.push(cur.trim()); cur = ''; }
+                        else { cur += ch; }
+                    }
+                    cols.push(cur.trim());
+
+                    const mitosisVal = cols[idxMitosis] ? cols[idxMitosis].trim() : '';
+                    if (mitosisVal.toLowerCase() !== 'true') return;
+
+                    const trackId = cols[idxTrackId] ? cols[idxTrackId].trim() : '';
+                    const frame = parseFloat(cols[idxFrame]);
+                    if (!trackId || isNaN(frame)) return;
+
+                    if (!trackFirstRow[trackId] || frame < trackFirstRow[trackId].frame) {
+                        trackFirstRow[trackId] = {
+                            frame: frame,
+                            x: parseFloat(cols[idxX]),
+                            y: parseFloat(cols[idxY])
+                        };
+                    }
+                });
+
+                let importedCount = 0;
+                Object.values(trackFirstRow).forEach(({ frame, x, y }) => {
+                    events.push({
+                        id: Date.now() + Math.random(),
+                        frame: Math.round(frame),
+                        type: '',
+                        x: isNaN(x) ? undefined : Math.round(x),
+                        y: isNaN(y) ? undefined : Math.round(y),
+                        notes: ''
+                    });
+                    importedCount++;
+                });
+
+                alert(`Successfully imported ${importedCount} mitosis event(s)`);
+                updateUI();
+                event.target.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
         // Handle cell image click to reupload video
+        function startRepImageMode() {
+            if (!hasVideo) {
+                alert('Please load a video first');
+                return;
+            }
+            isRepImageMode = true;
+            canvasElement.style.cursor = 'crosshair';
+            alert('Click and drag to select a rectangle region. The region will be added to events.');
+        }
+
+        function cancelRepImageMode() {
+            isRepImageMode = false;
+            repImageDrawing = false;
+            repImageStart = null;
+            repImageEnd = null;
+            canvasElement.style.cursor = 'crosshair';
+            if (isTiffFile) {
+                renderTiffFrame();
+            } else {
+                renderVideoFrame();
+            }
+            drawCurrentFrameMarkers();
+        }
+
         function handleCellImageClick(event) {
             console.log('Cell image clicked, target:', event.target.id);
             console.log('hasVideo:', hasVideo);
@@ -2279,15 +2502,6 @@
                 canvasContext.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
                 console.log('Frame drawn to canvas');
 
-                // Draw annotation markers
-                const currentFrameEvents = events.filter(e => e.frame === currentFrame);
-                console.log('Drawing', currentFrameEvents.length, 'markers');
-                currentFrameEvents.forEach(event => {
-                    if (event.x !== undefined && event.y !== undefined) {
-                        drawMarker(event.x, event.y, false);
-                    }
-                });
-
                 // Re-apply quartile crop if active
                 if (activeQuartile) {
                     fullImageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
@@ -2296,17 +2510,76 @@
             };
         }
 
-        // Draw annotation marker on canvas
+        function drawCurrentFrameMarkers() {
+            if (!markerCanvas || !markerContext || !canvasElement) return;
+
+            // Match pixel dimensions of video canvas
+            if (markerCanvas.width !== canvasElement.width || markerCanvas.height !== canvasElement.height) {
+                markerCanvas.width = canvasElement.width;
+                markerCanvas.height = canvasElement.height;
+            }
+
+            // Match CSS position/size/transform of video canvas exactly
+            markerCanvas.style.display = canvasElement.style.display || 'block';
+            markerCanvas.style.left = canvasElement.style.left;
+            markerCanvas.style.top = canvasElement.style.top;
+            markerCanvas.style.transform = canvasElement.style.transform;
+            markerCanvas.style.width = canvasElement.offsetWidth + 'px';
+            markerCanvas.style.height = canvasElement.offsetHeight + 'px';
+
+            // Clear then draw only the selected event's marker
+            markerContext.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+            const selectedEvent = events.find(e => e.id === currentEventId);
+            if (selectedEvent && selectedEvent.x !== undefined && selectedEvent.y !== undefined) {
+                drawMarker(selectedEvent.x, selectedEvent.y);
+            }
+        }
+
+        // Draw annotation marker on overlay canvas
         function drawMarker(x, y, isCurrent) {
-            canvasContext.save();
-            canvasContext.beginPath();
-            canvasContext.arc(x, y, isCurrent ? 8 : 6, 0, 2 * Math.PI);
-            canvasContext.fillStyle = isCurrent ? '#000000' : '#FF6B6B';
-            canvasContext.fill();
-            canvasContext.strokeStyle = '#FFFFFF';
-            canvasContext.lineWidth = 2;
-            canvasContext.stroke();
-            canvasContext.restore();
+            const ctx = markerContext;
+            const r = 18;
+            const armLen = 28;
+
+            // Adjust coordinates for quartile mode
+            const adjustedX = x - quartileOffsetX;
+            const adjustedY = y - quartileOffsetY;
+
+            // Skip if marker is outside the visible area (cropped quartile)
+            if (adjustedX < -armLen || adjustedX > markerCanvas.width + armLen ||
+                adjustedY < -armLen || adjustedY > markerCanvas.height + armLen) {
+                return;
+            }
+
+            ctx.save();
+
+            // Helper to draw with shadow/outline effect
+            function strokePath(color, width) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.stroke();
+            }
+
+            // Cross hair arms
+            ctx.beginPath();
+            ctx.moveTo(adjustedX - armLen, adjustedY);
+            ctx.lineTo(adjustedX - r, adjustedY);
+            ctx.moveTo(adjustedX + r, adjustedY);
+            ctx.lineTo(adjustedX + armLen, adjustedY);
+            ctx.moveTo(adjustedX, adjustedY - armLen);
+            ctx.lineTo(adjustedX, adjustedY - r);
+            ctx.moveTo(adjustedX, adjustedY + r);
+            ctx.lineTo(adjustedX, adjustedY + armLen);
+            strokePath('#000000', 5);
+            strokePath('#FF3B3B', 2);
+
+            // Circle
+            ctx.beginPath();
+            ctx.arc(adjustedX, adjustedY, r, 0, 2 * Math.PI);
+            strokePath('#000000', 5);
+            strokePath('#FF3B3B', 2);
+
+            ctx.restore();
         }
 
         // Setup video click handler
@@ -2327,8 +2600,56 @@
         }
 
         function setupVideoClickHandler() {
+            canvasElement.addEventListener('mousedown', (e) => {
+                if (!hasVideo || !isRepImageMode) return;
+                repImageDrawing = true;
+                repImageStart = canvasClickToImageCoords(e);
+                repImageEnd = repImageStart;
+            });
+
+            canvasElement.addEventListener('mousemove', (e) => {
+                if (!hasVideo) {
+                    document.getElementById('cursorCoords').style.display = 'none';
+                    return;
+                }
+
+                // Update cursor coordinates display
+                const coords = canvasClickToImageCoords(e);
+                const coordsDisplay = document.getElementById('cursorCoords');
+                coordsDisplay.textContent = `X: ${coords.x}, Y: ${coords.y}`;
+                coordsDisplay.style.display = 'block';
+
+                // Rep. Image rectangle drawing
+                if (!isRepImageMode || !repImageDrawing) return;
+                repImageEnd = coords;
+                // Clear marker canvas and draw rectangle
+                markerContext.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+                drawRepImageRectangle();
+            });
+
+            canvasElement.addEventListener('mouseup', (e) => {
+                if (!hasVideo || !isRepImageMode || !repImageDrawing) return;
+                repImageDrawing = false;
+                // Add rectangle as event
+                if (repImageStart && repImageEnd) {
+                    const x1 = Math.min(repImageStart.x, repImageEnd.x);
+                    const y1 = Math.min(repImageStart.y, repImageEnd.y);
+                    const x2 = Math.max(repImageStart.x, repImageEnd.x);
+                    const y2 = Math.max(repImageStart.y, repImageEnd.y);
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+                    if (width > 5 && height > 5) {
+                        addRepImageEvent(x1, y1, width, height);
+                    }
+                }
+                repImageStart = null;
+                repImageEnd = null;
+                cancelRepImageMode();
+            });
+
             canvasElement.addEventListener('click', (e) => {
                 if (!hasVideo) return;
+                if (isRepImageMode) return; // Don't process if in Rep. Image mode
 
                 // Coord-picking mode for Add Event panel
                 if (isPicking) {
@@ -2350,6 +2671,13 @@
                 addEventWithCoords(pendingEventType, coords.x, coords.y);
                 pendingEventType = null;
                 document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
+                // Reset cursor based on zoom level
+                canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+            });
+
+            // Hide coordinates when mouse leaves canvas
+            canvasElement.addEventListener('mouseleave', () => {
+                document.getElementById('cursorCoords').style.display = 'none';
             });
         }
 
@@ -2372,8 +2700,12 @@
             canvasElement.style.transform = `scale(${zoomScale})`;
             const zoomLabel = document.getElementById('zoomLevel');
             if (zoomLabel) zoomLabel.textContent = Math.round(zoomScale * 100) + '%';
-            if (!isPicking) {
+            if (!isPicking && !pendingEventType && !isRepImageMode) {
                 canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+            } else if (pendingEventType || isRepImageMode) {
+                canvasElement.style.cursor = 'crosshair';
+            } else if (isPicking) {
+                canvasElement.style.cursor = 'crosshair';
             }
         }
 
@@ -2417,6 +2749,9 @@
             const sy = row * Math.floor(fh / 2);
             const sw = Math.floor(fw / 2);
             const sh = Math.floor(fh / 2);
+            // Store offset for marker coordinate conversion
+            quartileOffsetX = sx;
+            quartileOffsetY = sy;
             // Crop: build new ImageData from the quarter region
             const cropped = new ImageData(sw, sh);
             for (let y = 0; y < sh; y++) {
@@ -2428,6 +2763,7 @@
             canvasElement.height = sh;
             canvasContext.putImageData(cropped, 0, 0);
             resetZoom();
+            drawCurrentFrameMarkers();
         }
 
         function exitQuartile() {
@@ -2436,7 +2772,10 @@
             canvasElement.height = fullImageData.height;
             canvasContext.putImageData(fullImageData, 0, 0);
             fullImageData = null;
+            quartileOffsetX = 0;
+            quartileOffsetY = 0;
             resetZoom();
+            drawCurrentFrameMarkers();
         }
 
         function zoomToQuartile(q) {
@@ -2481,7 +2820,7 @@
             let dragStartX = 0, dragStartY = 0, dragStartPanX = 0, dragStartPanY = 0, isDragging = false;
 
             container.addEventListener('mousedown', (e) => {
-                if (!hasVideo || zoomScale <= 1) return;
+                if (!hasVideo || zoomScale <= 1 || isRepImageMode) return;
                 if (e.target !== canvasElement) return;
                 isDragging = true;
                 dragStartX = e.clientX; dragStartY = e.clientY;
@@ -2500,7 +2839,11 @@
             document.addEventListener('mouseup', () => {
                 if (!isDragging) return;
                 isDragging = false;
-                canvasElement.style.cursor = isPicking ? 'crosshair' : (zoomScale > 1 ? 'grab' : 'crosshair');
+                if (isPicking || pendingEventType || isRepImageMode) {
+                    canvasElement.style.cursor = 'crosshair';
+                } else {
+                    canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'crosshair';
+                }
             });
         }
 
@@ -2553,6 +2896,7 @@
             if (hasVideo) {
                 renderVideoFrame();
             }
+            drawCurrentFrameMarkers();
 
             // Render events
             renderEvents();
@@ -2577,43 +2921,48 @@
                 eventsByFrame[event.frame].push(event);
             });
 
-            // Sort frames descending
+            // Sort frames descending (earliest at bottom)
             const sortedFrames = Object.keys(eventsByFrame).sort((a, b) => b - a);
+
+            // Update event count label - labeled events / total events
+            const labeledCount = events.filter(e => e.type && e.type !== '' && e.type !== '(No type)').length;
+            const totalCount = events.length;
+            document.getElementById('eventCount').textContent = `(${labeledCount}/${totalCount})`;
 
             sortedFrames.forEach(frame => {
                 const frameEvents = eventsByFrame[frame];
 
                 frameEvents.forEach((event, index) => {
                     const eventCard = document.createElement('div');
-                    eventCard.className = `event-card ${event.frame === currentFrame ? 'current' : ''}`;
+                    eventCard.className = `event-card ${event.id === currentEventId ? 'current' : ''}`;
+
+                    // Apply background color based on event type
+                    const bgColor = getEventColor(event.type);
+                    eventCard.style.backgroundColor = bgColor;
+
                     const notesHTML = event.notes ? `<div class="event-notes">${event.notes}</div>` : '';
                     const coordsHTML = (event.x !== undefined && event.y !== undefined)
                         ? `<div class="event-coords">@ (${event.x}, ${event.y})</div>`
                         : '';
 
-                    // Check if event has no type or has "(No type)"
                     const hasNoType = !event.type || event.type === '(No type)' || event.type.trim() === '';
+                    const isRectangle = event.type === 'Rectangle';
+                    const typeLabel = hasNoType ? '' : `<div class="event-type">${event.type}</div>`;
 
-                    let typeHTML;
-                    if (hasNoType) {
-                        // Show type selector buttons
-                        typeHTML = `
-                            <div class="event-type-selector">
-                                <div style="font-size: 11px; color: #71717A; margin-bottom: 6px;">Select type:</div>
-                                <div class="type-selector-buttons">
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Correct division')" title="Correct division">1</button>
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Misaligned chromosomes')" title="Misaligned chromosomes">2</button>
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Lagging chromosomes')" title="Lagging chromosomes">3</button>
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Anaphase bridge')" title="Anaphase bridge">4</button>
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Multipolar spindles')" title="Multipolar spindles">5</button>
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Micronuclei')" title="Micronuclei">6</button>
-                                    <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Mitosis failure')" title="Mitosis failure">7</button>
-                                </div>
+                    // Only show buttons if event has no type (and is not a rectangle)
+                    const typeHTML = (hasNoType && !isRectangle) ? `
+                        <div class="event-type-selector">
+                            <div class="type-selector-buttons">
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Correct division')" title="Correct division">1</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Misaligned chromosomes')" title="Misaligned chromosomes">2</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Lagging chromosomes')" title="Lagging chromosomes">3</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Anaphase bridge')" title="Anaphase bridge">4</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Multipolar spindles')" title="Multipolar spindles">5</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Micronuclei')" title="Micronuclei">6</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Mitosis failure')" title="Mitosis failure">7</button>
                             </div>
-                        `;
-                    } else {
-                        typeHTML = `<div class="event-type">${event.type}</div>`;
-                    }
+                        </div>
+                    ` : '';
 
                     eventCard.innerHTML = `
                         <input type="checkbox" class="event-export-check" ${event.exportFrame ? 'checked' : ''}
@@ -2623,6 +2972,7 @@
                             <button class="event-edit-btn" onclick="event.stopPropagation(); editEvent('${event.id}')">✎</button>
                             <div class="event-delete" onclick="event.stopPropagation(); deleteEvent('${event.id}')">×</div>
                         </div>
+                        ${typeLabel}
                         ${typeHTML}
                         ${coordsHTML}
                         ${notesHTML}
@@ -2633,12 +2983,23 @@
                             !e.target.classList.contains('type-selector-btn') &&
                             e.target.type !== 'checkbox') {
                             currentFrame = event.frame;
+                            currentEventId = event.id;
                             updateUI();
                         }
                     };
                     eventList.appendChild(eventCard);
                 });
             });
+
+            // Scroll event list so the active card is at the top of the viewable area
+            if (currentEventId) {
+                const activeCard = eventList.querySelector('.event-card.current');
+                if (activeCard) {
+                    const listRect = eventList.getBoundingClientRect();
+                    const cardRect = activeCard.getBoundingClientRect();
+                    eventList.scrollTop += cardRect.top - listRect.top;
+                }
+            }
         }
 
         // Render event markers on timeline
@@ -2646,36 +3007,57 @@
             const markersContainer = document.getElementById('eventMarkers');
             markersContainer.innerHTML = '';
 
+            // Group events by frame and count
+            const frameEventCount = {};
             events.forEach(event => {
+                frameEventCount[event.frame] = (frameEventCount[event.frame] || 0) + 1;
+            });
+
+            // Find max count for scaling opacity/height
+            const maxCount = Math.max(...Object.values(frameEventCount), 1);
+
+            // Draw one marker per unique frame with opacity based on count
+            Object.entries(frameEventCount).forEach(([frame, count]) => {
                 const marker = document.createElement('div');
-                marker.className = `event-marker ${event.frame === currentFrame ? 'current' : ''}`;
-                marker.style.left = `calc(${(event.frame / totalFrames) * 100}% - 4px)`;
-                marker.title = `Frame ${event.frame}: ${event.type}`;
+                const isCurrentFrame = parseInt(frame) === currentFrame;
+                marker.className = `event-marker ${isCurrentFrame ? 'current' : ''}`;
+                marker.style.left = `calc(${(frame / totalFrames) * 100}% - 4px)`;
+                marker.style.opacity = 0.5 + (count / maxCount) * 0.5; // opacity 0.5 to 1
+                marker.title = `Frame ${frame}: ${count} event${count > 1 ? 's' : ''}`;
                 marker.onclick = () => {
-                    currentFrame = event.frame;
+                    currentFrame = parseInt(frame);
+                    currentEventId = null; // Reset to show all events on this frame
                     updateUI();
                 };
                 markersContainer.appendChild(marker);
             });
         }
 
-        // Navigation - jump between events
+        // Navigation - jump between events one by one
         function nextFrame() {
-            const sortedEvents = [...events].sort((a, b) => a.frame - b.frame);
-            const nextEvent = sortedEvents.find(e => e.frame > currentFrame);
+            const sortedEvents = [...events].sort((a, b) => a.frame - b.frame || 0);
+            const currentIdx = sortedEvents.findIndex(e => e.id === currentEventId);
+            const nextEvent = currentIdx >= 0
+                ? sortedEvents[currentIdx + 1]
+                : sortedEvents.find(e => e.frame > currentFrame);
 
             if (nextEvent) {
                 currentFrame = nextEvent.frame;
+                currentEventId = nextEvent.id;
                 updateUI();
             }
         }
 
         function previousFrame() {
-            const sortedEvents = [...events].sort((a, b) => b.frame - a.frame);
-            const prevEvent = sortedEvents.find(e => e.frame < currentFrame);
+            const sortedEvents = [...events].sort((a, b) => a.frame - b.frame || 0);
+            const currentIdx = sortedEvents.findIndex(e => e.id === currentEventId);
+            const prevEvent = currentIdx > 0
+                ? sortedEvents[currentIdx - 1]
+                : [...sortedEvents].reverse().find(e => e.frame < currentFrame);
 
             if (prevEvent) {
                 currentFrame = prevEvent.frame;
+                currentEventId = prevEvent.id;
                 updateUI();
             }
         }
@@ -2893,6 +3275,37 @@
             updateUI();
         }
 
+        function addRepImageEvent(x, y, width, height) {
+            events.push({
+                id: Date.now() + Math.random(),
+                frame: currentFrame,
+                type: 'Rectangle',
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                notes: 'Rep. Image',
+                exportFrame: true
+            });
+
+            updateUI();
+        }
+
+        function drawRepImageRectangle() {
+            if (!repImageStart || !repImageEnd) return;
+
+            const x1 = Math.min(repImageStart.x, repImageEnd.x);
+            const y1 = Math.min(repImageStart.y, repImageEnd.y);
+            const x2 = Math.max(repImageStart.x, repImageEnd.x);
+            const y2 = Math.max(repImageStart.y, repImageEnd.y);
+
+            markerContext.strokeStyle = '#000000';
+            markerContext.lineWidth = 2;
+            markerContext.setLineDash([5, 5]);
+            markerContext.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            markerContext.setLineDash([]);
+        }
+
         document.querySelectorAll('.type-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 addEventByType(btn.dataset.type);
@@ -2967,7 +3380,7 @@
         }
 
         // Capture a specific TIFF frame (c, z, t) to a PNG blob
-        function captureFrameImage(t, z, c) {
+        function captureFrameImage(t, z, c, rect = null) {
             const savedT = currentT, savedZ = currentZ, savedC = currentC;
             currentT = t; currentZ = z; currentC = c;
             const ifdIndex = ijIndex(currentC, currentZ, currentT);
@@ -2976,14 +3389,32 @@
             if (!imgData) return null;
 
             const offscreen = document.createElement('canvas');
-            offscreen.width = imgData.width;
-            offscreen.height = imgData.height;
-            offscreen.getContext('2d').putImageData(imgData, 0, 0);
+
+            // If rectangle crop requested, crop the image
+            if (rect && rect.width > 0 && rect.height > 0) {
+                const x = Math.max(0, Math.min(rect.x, imgData.width - 1));
+                const y = Math.max(0, Math.min(rect.y, imgData.height - 1));
+                const w = Math.min(rect.width, imgData.width - x);
+                const h = Math.min(rect.height, imgData.height - y);
+
+                offscreen.width = w;
+                offscreen.height = h;
+                const ctx = offscreen.getContext('2d');
+                const fullCtx = document.createElement('canvas').getContext('2d');
+                fullCtx.canvas.width = imgData.width;
+                fullCtx.canvas.height = imgData.height;
+                fullCtx.putImageData(imgData, 0, 0);
+                ctx.drawImage(fullCtx.canvas, x, y, w, h, 0, 0, w, h);
+            } else {
+                offscreen.width = imgData.width;
+                offscreen.height = imgData.height;
+                offscreen.getContext('2d').putImageData(imgData, 0, 0);
+            }
             return new Promise(resolve => offscreen.toBlob(resolve, 'image/png'));
         }
 
         // Capture current video frame to a PNG blob
-        function captureVideoFrameImage(frame) {
+        function captureVideoFrameImage(frame, rect = null) {
             return new Promise(resolve => {
                 if (!hasVideo || isTiffFile) { resolve(null); return; }
                 const savedFrame = currentFrame;
@@ -2991,9 +3422,30 @@
                 videoElement.currentTime = Math.min(frameTime, videoElement.duration - 0.001);
                 videoElement.onseeked = () => {
                     const offscreen = document.createElement('canvas');
-                    offscreen.width = videoElement.videoWidth;
-                    offscreen.height = videoElement.videoHeight;
-                    offscreen.getContext('2d').drawImage(videoElement, 0, 0);
+                    const srcW = videoElement.videoWidth;
+                    const srcH = videoElement.videoHeight;
+
+                    // If rectangle crop requested, crop the image
+                    if (rect && rect.width > 0 && rect.height > 0) {
+                        const x = Math.max(0, Math.min(rect.x, srcW - 1));
+                        const y = Math.max(0, Math.min(rect.y, srcH - 1));
+                        const w = Math.min(rect.width, srcW - x);
+                        const h = Math.min(rect.height, srcH - y);
+
+                        offscreen.width = w;
+                        offscreen.height = h;
+                    } else {
+                        offscreen.width = srcW;
+                        offscreen.height = srcH;
+                    }
+
+                    const ctx = offscreen.getContext('2d');
+                    if (rect && rect.width > 0 && rect.height > 0) {
+                        ctx.drawImage(videoElement, rect.x, rect.y, rect.width, rect.height, 0, 0, offscreen.width, offscreen.height);
+                    } else {
+                        ctx.drawImage(videoElement, 0, 0);
+                    }
+
                     offscreen.toBlob(blob => {
                         currentFrame = savedFrame;
                         renderVideoFrame();
@@ -3054,10 +3506,12 @@
                 for (const ev of checkedEvents) {
                     try {
                         let blob = null;
+                        // For Rectangle events, pass the crop region
+                        const rect = ev.type === 'Rectangle' ? { x: ev.x, y: ev.y, width: ev.width, height: ev.height } : null;
                         if (isTiffFile) {
-                            blob = await captureFrameImage(ev.frame, currentZ, currentC);
+                            blob = await captureFrameImage(ev.frame, currentZ, currentC, rect);
                         } else {
-                            blob = await captureVideoFrameImage(ev.frame);
+                            blob = await captureVideoFrameImage(ev.frame, rect);
                         }
                         if (blob) {
                             const sanitizedType = (ev.type || 'unknown').replace(/[^a-z0-9]/gi, '-').toLowerCase();
@@ -3085,6 +3539,22 @@
             }, 500);
         }
 
+        // Event type colors - distinct and non-repeating
+        const eventTypeColors = {
+            'Correct division': '#D1FAE5',      // Green
+            'Misaligned chromosomes': '#FEF3C7', // Amber/Yellow
+            'Lagging chromosomes': '#FFECEB',    // Red
+            'Anaphase bridge': '#E0E7FF',        // Indigo/Blue
+            'Multipolar spindles': '#FCE7F3',    // Pink
+            'Micronuclei': '#DDD6FE',            // Purple
+            'Mitosis failure': '#F3E8FF',        // Violet
+            'Rectangle': '#FAFAFA'               // Gray for Rep. Image rectangles
+        };
+
+        function getEventColor(eventType) {
+            return eventTypeColors[eventType] || '#F3F4F6';
+        }
+
         // Keyboard shortcuts
         function setupKeyboardShortcuts() {
             const eventTypes = [
@@ -3107,14 +3577,10 @@
                     previousFrame();
                 }
                 // Frame skipping
-                else if (e.key === 'w' || e.key === 'W') {
+                else if (e.key === '>' || e.key === '.') {
                     skipFrames(1);
-                } else if (e.key === 'q' || e.key === 'Q') {
+                } else if (e.key === '<' || e.key === ',') {
                     skipFrames(-1);
-                } else if (e.key === 's' || e.key === 'S') {
-                    skipFrames(5);
-                } else if (e.key === 'a' || e.key === 'A') {
-                    skipFrames(-5);
                 }
                 // Play/pause
                 else if (e.key === ' ') {
