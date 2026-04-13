@@ -1582,12 +1582,25 @@
         function loadSessions() {
             const stored = localStorage.getItem('cellAnnotatorSessions');
             if (stored) {
-                sessions = JSON.parse(stored);
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && Object.keys(parsed).length > 0) {
+                        sessions = parsed;
+                        console.log('Loaded ' + Object.keys(sessions).length + ' session(s) from storage');
+                    }
+                } catch (e) {
+                    console.error('Failed to parse stored sessions:', e);
+                }
             }
         }
 
         function saveSessions() {
-            localStorage.setItem('cellAnnotatorSessions', JSON.stringify(sessions));
+            try {
+                localStorage.setItem('cellAnnotatorSessions', JSON.stringify(sessions));
+            } catch (e) {
+                console.error('Failed to save sessions to localStorage:', e);
+                alert('Warning: Could not save sessions. Your browser storage may be full or disabled.');
+            }
         }
 
         function saveCurrentSession() {
