@@ -3130,6 +3130,15 @@
             const markersContainer = document.getElementById('eventMarkers');
             markersContainer.innerHTML = '';
 
+            // Get slider position to account for label and gap offsets
+            const tSlider = document.getElementById('tFrameSlider');
+            let sliderOffsetPercent = 0;
+            if (tSlider) {
+                const sliderRect = tSlider.getBoundingClientRect();
+                const containerRect = markersContainer.parentElement.getBoundingClientRect();
+                sliderOffsetPercent = ((sliderRect.left - containerRect.left) / containerRect.width) * 100;
+            }
+
             // Create a marker for each event, positioned based on frame
             events.forEach((event, index) => {
                 const marker = document.createElement('div');
@@ -3137,7 +3146,9 @@
                 const isCurrentFrame = event.frame === currentFrame;
 
                 marker.className = `event-marker ${isCurrentEvent ? 'current' : ''}`;
-                marker.style.left = `calc(${(event.frame / totalFrames) * 100}% - 3px)`; // -3px to center 6px dot
+                // Position marker relative to slider track, accounting for label and gap offset
+                const markerPercent = (event.frame / totalFrames) * (100 - sliderOffsetPercent);
+                marker.style.left = `calc(${sliderOffsetPercent}% + ${markerPercent}% - 3px)`; // -3px to center 6px dot
 
                 // Color based on event type
                 const color = getEventColor(event.type);
