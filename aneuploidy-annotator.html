@@ -881,11 +881,12 @@
         }
 
         .event-marker {
-            width: 8px;
-            height: 100%;
+            width: 6px;
+            height: 6px;
             position: absolute;
-            top: 0;
-            border-radius: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 50%;
             background: #FF6B6B;
             cursor: pointer;
             transition: all 0.2s;
@@ -893,12 +894,16 @@
 
         .event-marker:hover {
             background: #FF4444;
-            width: 12px;
+            width: 8px;
+            height: 8px;
+            transform: translateY(-50%);
         }
 
         .event-marker.current {
             background: #000000;
-            width: 12px;
+            width: 8px;
+            height: 8px;
+            transform: translateY(-50%);
         }
 
         .controls {
@@ -1213,6 +1218,7 @@
                     <button class="import-csv-btn" onclick="document.getElementById('csvImport').click()">Import CSV</button>
                     <input type="file" id="trackastraImport" accept=".csv" style="display: none;" onchange="handleTrackastraImport(event)">
                     <button class="import-csv-btn" onclick="document.getElementById('trackastraImport').click()">Import Trackastra CSV</button>
+                    <button class="import-csv-btn" onclick="exportAll()" style="background: #000000; color: #FFFFFF; margin-top: 8px;">Export</button>
                 </div>
             </div>
 
@@ -1239,9 +1245,6 @@
 
         <div class="main-area">
             <div class="header">
-                <div style="display: flex; gap: 8px;">
-                    <button class="export-btn" onclick="exportAll()" style="flex: 1;">Export</button>
-                </div>
             </div>
 
             <div class="viewer-area">
@@ -1301,14 +1304,7 @@
                 </div>
             </div>
 
-            <div class="timeline">
-                <div class="timeline-track" id="timelineTrack" onclick="seekTimeline(event)">
-                    <div class="timeline-progress" id="timelineProgress">
-                        <div class="timeline-handle" id="timelineHandle"></div>
-                    </div>
-                    <div id="eventMarkers"></div>
-                </div>
-                <div class="controls">
+            <div class="controls">
                     <button class="control-btn secondary" onclick="skipFrames(-5)">-5</button>
                     <button class="control-btn secondary" onclick="skipFrames(-1)">-1</button>
                     <button class="control-btn secondary" onclick="previousFrame()">← Prev Event</button>
@@ -1319,10 +1315,11 @@
                 </div>
 
                 <div class="zdim-controls" id="zdimControls">
-                    <div class="zdim-row" id="zSliceRow" style="display:none">
+                    <div class="zdim-row" id="zSliceRow" style="display:none; position: relative;">
                         <span class="zdim-label">Z</span>
                         <input type="range" class="zdim-slider" id="zSliceSlider" min="1" value="1" oninput="onZSliceChange(this.value)">
                         <span class="zdim-value" id="zSliceValue">1 / 1</span>
+                        <div id="eventMarkers" style="position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none;"></div>
                     </div>
                     <div class="zdim-row" id="tFrameRow" style="display:none">
                         <span class="zdim-label">T</span>
@@ -2953,9 +2950,7 @@
                 document.getElementById('tFrameValue').textContent = `${currentT} / ${ijFrames}`;
             }
 
-            // Update timeline
-            const progress = hasVideo ? (currentFrame / totalFrames) * 100 : 0;
-            document.getElementById('timelineProgress').style.width = progress + '%';
+            // Timeline functionality is now handled by event markers on Z-slice row
 
             // Update cell image or video
             if (hasVideo) {
@@ -3086,7 +3081,7 @@
                 const marker = document.createElement('div');
                 const isCurrentFrame = parseInt(frame) === currentFrame;
                 marker.className = `event-marker ${isCurrentFrame ? 'current' : ''}`;
-                marker.style.left = `calc(${(frame / totalFrames) * 100}% - 4px)`;
+                marker.style.left = `calc(${(frame / totalFrames) * 100}% - 3px)`; // -3px to center 6px dot
                 marker.style.opacity = 0.5 + (count / maxCount) * 0.5; // opacity 0.5 to 1
                 marker.title = `Frame ${frame}: ${count} event${count > 1 ? 's' : ''}`;
                 marker.onclick = () => {
