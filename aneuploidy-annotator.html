@@ -634,6 +634,7 @@
             overflow: hidden;
             position: relative;
             min-height: 400px;
+            padding: 10px 0;
         }
 
         /* Zoom controls overlay */
@@ -1238,25 +1239,6 @@
 
         <div class="main-area">
             <div class="header">
-                <div class="header-left">
-                    <div class="header-title" id="frameTitle">Frame 1 / 180</div>
-                    <div class="speed-control">
-                        <span class="speed-label">Speed:</span>
-                        <span class="speed-value" id="speedValue" onclick="toggleSpeedPopover(event)">1x</span>
-                        <div class="speed-popover" id="speedPopover">
-                            <div class="speed-popover-row">
-                                <span class="speed-popover-label">Playback speed</span>
-                                <span class="speed-popover-val" id="speedPopoverVal">1x</span>
-                            </div>
-                            <input type="range" class="speed-slider" id="speedSlider"
-                                min="-4" max="4" step="1" value="0"
-                                oninput="onSpeedSliderChange(this.value)">
-                            <div class="speed-popover-row" style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; justify-content:space-between;">
-                                <span>0.0625x</span><span>1x</span><span>16x</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="export-btn" onclick="exportAll()" style="flex: 1;">Export</button>
                 </div>
@@ -1297,12 +1279,29 @@
                     </div>
                     <div class="image-label" id="imageLabel" style="display: none;">Cell Frame #1</div>
                     <div class="cursor-coords" id="cursorCoords" style="display: none;">X: 0, Y: 0</div>
+                    <div class="frame-info-panel" style="position: absolute; bottom: 16px; left: 16px; display: flex; gap: 24px; font-family: 'Inter', sans-serif; font-size: 13px; color: #71717A; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 6px;">
+                        <div class="frame-counter" id="frameCounter" style="font-weight: 500;">Frame 1 / 180</div>
+                        <div class="speed-control" style="display: flex; align-items: center; gap: 6px;">
+                            <span class="speed-label">Speed:</span>
+                            <span class="speed-value" id="speedValue" onclick="toggleSpeedPopover(event)" style="cursor: pointer; font-weight: 600; color: #000000;">1x</span>
+                            <div class="speed-popover" id="speedPopover" style="display: none; position: absolute; bottom: 100%; left: 0; background: white; border: 1px solid #E4E4E7; border-radius: 6px; padding: 12px; white-space: nowrap; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="speed-popover-row" style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; justify-content:space-between; margin-bottom: 8px;">
+                                    <span class="speed-popover-label">Playback speed</span>
+                                    <span class="speed-popover-val" id="speedPopoverVal">1x</span>
+                                </div>
+                                <input type="range" class="speed-slider" id="speedSlider"
+                                    min="-4" max="4" step="1" value="0"
+                                    oninput="onSpeedSliderChange(this.value)" style="width: 120px;">
+                                <div class="speed-popover-row" style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; justify-content:space-between; margin-top: 8px;">
+                                    <span>0.0625x</span><span>1x</span><span>16x</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="timeline">
-                <div class="timeline-label">Timeline</div>
-                <div class="timeline-ruler" id="timelineRuler"></div>
                 <div class="timeline-track" id="timelineTrack" onclick="seekTimeline(event)">
                     <div class="timeline-progress" id="timelineProgress">
                         <div class="timeline-handle" id="timelineHandle"></div>
@@ -2864,13 +2863,20 @@
                 const prevScale = zoomScale;
                 zoomScale = Math.max(1, Math.min(8, zoomScale + delta));
 
+                if (zoomScale === prevScale) return; // No zoom change
+
                 // Zoom centered on cursor
-                const rect = container.getBoundingClientRect();
+                const rect = canvasElement.getBoundingClientRect();
                 const mx = e.clientX - rect.left;
                 const my = e.clientY - rect.top;
-                const scaleFactor = zoomScale / prevScale;
-                panX = mx - rect.width  / 2 + (panX - (mx - rect.width  / 2)) * scaleFactor;
-                panY = my - rect.height / 2 + (panY - (my - rect.height / 2)) * scaleFactor;
+
+                // Map cursor position in screen space to image space
+                const imageX = (mx - panX) / prevScale;
+                const imageY = (my - panY) / prevScale;
+
+                // Update pan so the image point stays under the cursor
+                panX = mx - imageX * zoomScale;
+                panY = my - imageY * zoomScale;
 
                 applyZoomTransform();
             }, { passive: false });
@@ -2931,11 +2937,11 @@
                 if (isTiffFile && ijChannels > 1) {
                     titleText += `  C ${currentC}/${ijChannels}`;
                 }
-                document.getElementById('frameTitle').textContent = titleText;
+                document.getElementById('frameCounter').textContent = titleText;
                 document.getElementById('imageLabel').textContent = `Cell Frame #${currentFrame}`;
                 document.getElementById('imageLabel').style.display = 'block';
             } else {
-                document.getElementById('frameTitle').textContent = 'No Video Loaded';
+                document.getElementById('frameCounter').textContent = 'No Video Loaded';
                 document.getElementById('imageLabel').style.display = 'none';
             }
 
