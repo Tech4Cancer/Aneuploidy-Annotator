@@ -11,6 +11,8 @@ const TEST_FILES = [
   'test-sessions.js',
   'test-event-markers.js',
   'test-markers-visual.js',
+  'test-zoom.js',
+  'test-slider-shortcuts.js',
   'test-navigation.js',
   'test-annotations.js',
   'test-import.js',

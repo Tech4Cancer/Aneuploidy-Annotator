@@ -3720,8 +3720,9 @@
                     return;
                 }
 
-                // Don't process shortcuts when focused on input fields or sliders
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+                // Don't process shortcuts when focused on input fields or text areas, but allow range sliders
+                const isRangeSlider = e.target.tagName === 'INPUT' && e.target.type === 'range';
+                if (!isRangeSlider && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
 
                 // Event navigation
                 if (e.key === 'ArrowRight') {
