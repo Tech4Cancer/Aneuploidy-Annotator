@@ -910,9 +910,12 @@
 
         .controls {
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 16px;
             align-items: center;
-            justify-content: center;
+            padding: 16px 24px;
+            background: #FFFFFF;
+            border-top: 1px solid #E4E4E7;
         }
 
         .control-btn {
@@ -1119,9 +1122,11 @@
         .zdim-controls {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            padding: 10px 0 0 0;
+            gap: 12px;
+            padding: 8px 0 0 0;
             min-height: 0;
+            width: 100%;
+            max-width: 800px;
         }
 
         .zdim-controls.visible {
@@ -1131,7 +1136,11 @@
         .zdim-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+            padding: 8px;
+            background: #FAFAFA;
+            border-radius: 6px;
+            position: relative;
         }
 
         .zdim-label {
@@ -1289,6 +1298,8 @@
             </div>
 
             <div class="controls">
+                <!-- Button Controls Row -->
+                <div style="display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap;">
                     <button class="control-btn secondary" onclick="skipFrames(-5)">-5</button>
                     <button class="control-btn secondary" onclick="skipFrames(-1)">-1</button>
                     <button class="control-btn secondary" onclick="previousFrame()">← Prev Event</button>
@@ -1296,24 +1307,27 @@
                     <button class="control-btn secondary" onclick="nextFrame()">Next Event →</button>
                     <button class="control-btn secondary" onclick="skipFrames(1)">+1</button>
                     <button class="control-btn secondary" onclick="skipFrames(5)">+5</button>
-                    <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-family: 'Inter', sans-serif; font-size: 12px;">
-                        <span id="frameCounter" style="color: #000000; font-weight: 500; min-width: 100px;">Frame 1 / 1</span>
-                        <div style="display: flex; align-items: center; gap: 8px; position: relative;">
-                            <span style="color: #71717A;">Speed:</span>
-                            <span id="speedValue" onclick="toggleSpeedPopover(event)" style="cursor: pointer; font-weight: 600; color: #000000; min-width: 30px;">1x</span>
-                            <div class="speed-popover" id="speedPopover" style="display: none; position: absolute; bottom: 100%; background: white; border: 1px solid #E4E4E7; border-radius: 6px; padding: 12px; white-space: nowrap; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; margin-bottom: 8px;">
-                                    <span>Playback speed</span>
-                                </div>
-                                <input type="range" class="speed-slider" id="speedSlider"
-                                    min="-4" max="4" step="1" value="0"
-                                    oninput="onSpeedSliderChange(this.value)" style="width: 120px;">
-                                <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; display: flex; justify-content: space-between; margin-top: 8px;">
-                                    <span>0.0625x</span><span>1x</span><span>16x</span>
-                                </div>
+                </div>
+
+                <!-- Info & Controls Row -->
+                <div style="display: flex; align-items: center; gap: 32px; justify-content: center; flex-wrap: wrap; width: 100%;">
+                    <span id="frameCounter" style="color: #000000; font-weight: 500; min-width: 100px; font-family: 'Inter', sans-serif; font-size: 12px;">Frame 1 / 1</span>
+                    <div style="display: flex; align-items: center; gap: 8px; position: relative; font-family: 'Inter', sans-serif; font-size: 12px;">
+                        <span style="color: #71717A;">Speed:</span>
+                        <span id="speedValue" onclick="toggleSpeedPopover(event)" style="cursor: pointer; font-weight: 600; color: #000000; min-width: 30px;">1x</span>
+                        <div class="speed-popover" id="speedPopover" style="display: none; position: absolute; bottom: 100%; background: white; border: 1px solid #E4E4E7; border-radius: 6px; padding: 12px; white-space: nowrap; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; margin-bottom: 8px;">
+                                <span>Playback speed</span>
+                            </div>
+                            <input type="range" class="speed-slider" id="speedSlider"
+                                min="-4" max="4" step="1" value="0"
+                                oninput="onSpeedSliderChange(this.value)" style="width: 120px;">
+                            <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; display: flex; justify-content: space-between; margin-top: 8px;">
+                                <span>0.0625x</span><span>1x</span><span>16x</span>
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <div class="zdim-controls" id="zdimControls">
@@ -3091,28 +3105,39 @@
             const markersContainer = document.getElementById('eventMarkers');
             markersContainer.innerHTML = '';
 
-            // Group events by frame and count
-            const frameEventCount = {};
-            events.forEach(event => {
-                frameEventCount[event.frame] = (frameEventCount[event.frame] || 0) + 1;
-            });
-
-            // Find max count for scaling opacity/height
-            const maxCount = Math.max(...Object.values(frameEventCount), 1);
-
-            // Draw one marker per unique frame with opacity based on count
-            Object.entries(frameEventCount).forEach(([frame, count]) => {
+            // Create a marker for each event, positioned based on frame
+            events.forEach((event, index) => {
                 const marker = document.createElement('div');
-                const isCurrentFrame = parseInt(frame) === currentFrame;
-                marker.className = `event-marker ${isCurrentFrame ? 'current' : ''}`;
-                marker.style.left = `calc(${(frame / totalFrames) * 100}% - 3px)`; // -3px to center 6px dot
-                marker.style.opacity = 0.5 + (count / maxCount) * 0.5; // opacity 0.5 to 1
-                marker.title = `Frame ${frame}: ${count} event${count > 1 ? 's' : ''}`;
+                const isCurrentEvent = event.id === currentEventId;
+                const isCurrentFrame = event.frame === currentFrame;
+
+                marker.className = `event-marker ${isCurrentEvent ? 'current' : ''}`;
+                marker.style.left = `calc(${(event.frame / totalFrames) * 100}% - 3px)`; // -3px to center 6px dot
+
+                // Color based on event type
+                const color = getEventColor(event.type);
+                // Extract the hue from the light color and make a darker version for the marker
+                const eventTypeMarkers = {
+                    'Correct division': '#10B981',      // Green
+                    'Misaligned chromosomes': '#F59E0B', // Amber/Yellow
+                    'Lagging chromosomes': '#EF4444',    // Red
+                    'Anaphase bridge': '#4F46E5',        // Indigo/Blue
+                    'Multipolar spindles': '#EC4899',    // Pink
+                    'Micronuclei': '#A855F7',            // Purple
+                    'Mitosis failure': '#9333EA',        // Violet
+                    'Rectangle': '#6B7280'               // Gray
+                };
+                marker.style.background = eventTypeMarkers[event.type] || '#EF4444';
+                marker.style.borderRadius = '50%';
+                marker.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.8)';
+
+                marker.title = `${event.type} @ Frame ${event.frame}`;
                 marker.onclick = () => {
-                    currentFrame = parseInt(frame);
-                    currentEventId = null; // Reset to show all events on this frame
+                    currentFrame = event.frame;
+                    currentEventId = event.id;
                     updateUI();
                 };
+
                 markersContainer.appendChild(marker);
             });
         }
