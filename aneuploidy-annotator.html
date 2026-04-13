@@ -1296,18 +1296,21 @@
                     <button class="control-btn secondary" onclick="nextFrame()">Next Event →</button>
                     <button class="control-btn secondary" onclick="skipFrames(1)">+1</button>
                     <button class="control-btn secondary" onclick="skipFrames(5)">+5</button>
-                    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px;">
-                        <span style="color: #71717A;">Speed:</span>
-                        <span id="speedValue" onclick="toggleSpeedPopover(event)" style="cursor: pointer; font-weight: 600; color: #000000; min-width: 30px;">1x</span>
-                        <div class="speed-popover" id="speedPopover" style="display: none; position: absolute; bottom: 100%; background: white; border: 1px solid #E4E4E7; border-radius: 6px; padding: 12px; white-space: nowrap; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                            <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; margin-bottom: 8px;">
-                                <span>Playback speed</span>
-                            </div>
-                            <input type="range" class="speed-slider" id="speedSlider"
-                                min="-4" max="4" step="1" value="0"
-                                oninput="onSpeedSliderChange(this.value)" style="width: 120px;">
-                            <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; display: flex; justify-content: space-between; margin-top: 8px;">
-                                <span>0.0625x</span><span>1x</span><span>16x</span>
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-family: 'Inter', sans-serif; font-size: 12px;">
+                        <span id="frameCounter" style="color: #000000; font-weight: 500; min-width: 100px;">Frame 1 / 1</span>
+                        <div style="display: flex; align-items: center; gap: 8px; position: relative;">
+                            <span style="color: #71717A;">Speed:</span>
+                            <span id="speedValue" onclick="toggleSpeedPopover(event)" style="cursor: pointer; font-weight: 600; color: #000000; min-width: 30px;">1x</span>
+                            <div class="speed-popover" id="speedPopover" style="display: none; position: absolute; bottom: 100%; background: white; border: 1px solid #E4E4E7; border-radius: 6px; padding: 12px; white-space: nowrap; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; margin-bottom: 8px;">
+                                    <span>Playback speed</span>
+                                </div>
+                                <input type="range" class="speed-slider" id="speedSlider"
+                                    min="-4" max="4" step="1" value="0"
+                                    oninput="onSpeedSliderChange(this.value)" style="width: 120px;">
+                                <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; display: flex; justify-content: space-between; margin-top: 8px;">
+                                    <span>0.0625x</span><span>1x</span><span>16x</span>
+                                </div>
                             </div>
                         </div>
                     </div>
