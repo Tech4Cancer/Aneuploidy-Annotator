@@ -1577,7 +1577,7 @@
                     sessionIdToLoad = sessionIds[sessionIds.length - 1];
                 }
                 currentSessionId = sessionIdToLoad;
-                loadSession(sessionIdToLoad);
+                await loadSession(sessionIdToLoad);
             }
         }
 
@@ -2236,6 +2236,15 @@
                 await loadFileIntoPlayer(file);
             } else {
                 closeNewSessionModal();
+                currentSessionId = sessionId;
+
+                // Reset state for new session
+                events = [];
+                currentFrame = 1;
+                currentEventId = null;
+                totalFrames = 180;
+                videoFPS = 30;
+
                 saveSessions();
                 loadSession(sessionId);
             }
@@ -3206,6 +3215,12 @@
         function setupTimelineDrag() {
             const handle = document.getElementById('timelineHandle');
             const track = document.getElementById('timelineTrack');
+
+            // Timeline elements were removed in UI reorganization, skip if not present
+            if (!handle || !track) {
+                return;
+            }
+
             let isDragging = false;
 
             handle.addEventListener('mousedown', (e) => {
@@ -3719,7 +3734,9 @@
         window.addEventListener('resize', renderTimelineRuler);
 
         // Initialize app
-        init();
+        init().catch(error => {
+            console.error('Initialization error:', error.message || error);
+        });
     </script>
 </body>
 </html>
