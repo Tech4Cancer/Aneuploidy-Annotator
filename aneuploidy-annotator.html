@@ -249,10 +249,6 @@
             background: #F9F9F9;
         }
 
-        .event-card:hover .event-edit-btn {
-            display: block;
-        }
-
         .event-card.current {
             border: 2px solid #000000;
             background: #F4F4F5;
@@ -274,7 +270,7 @@
         }
 
         .event-edit-btn {
-            display: none;
+            display: block;
             position: absolute;
             right: 36px;
             top: 12px;
@@ -580,7 +576,7 @@
         .export-btn {
             height: 40px;
             padding: 0 20px;
-            background: #000000;
+            background: #10B981;
             color: #FFFFFF;
             border: none;
             border-radius: 8px;
@@ -1249,8 +1245,8 @@
                     <button class="type-btn" data-type="Lagging chromosomes" data-key="3" style="background-color: #FFECEB; border-left: 4px solid #EF4444;">3. Lagging</button>
                     <button class="type-btn" data-type="Anaphase bridge" data-key="4" style="background-color: #E0E7FF; border-left: 4px solid #6366F1;">4. Bridge</button>
                     <button class="type-btn" data-type="Multipolar spindles" data-key="5" style="background-color: #FCE7F3; border-left: 4px solid #EC4899;">5. Multipolar</button>
-                    <button class="type-btn" data-type="Micronuclei" data-key="6" style="background-color: #DDD6FE; border-left: 4px solid #8B5CF6;">6. Micron</button>
-                    <button class="type-btn" data-type="Mitosis failure" data-key="7" style="background-color: #F3E8FF; border-left: 4px solid #A855F7;">7. Failure</button>
+                    <button class="type-btn" data-type="Micronuclei" data-key="6" style="background-color: #DDD6FE; border-left: 4px solid #8B5CF6;">6. MN</button>
+                    <button class="type-btn" data-type="Mitotic failure" data-key="7" style="background-color: #F3E8FF; border-left: 4px solid #A855F7;">7. Failure</button>
                 </div>
 
                 <button class="type-btn" onclick="startRepImageMode()" style="width: 100%; margin-top: 12px; margin-bottom: 12px; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Representative Image</button>
@@ -1286,9 +1282,9 @@
                                 <button class="brightness-reset" onclick="resetBrightness()" title="Reset brightness">↺</button>
                             </div>
                             <div class="zoom-controls">
-                                <button class="zoom-btn" onclick="adjustZoom(-0.25)" title="Zoom out">−</button>
+                                <button class="zoom-btn" onclick="adjustZoom(-0.15)" title="Zoom out">−</button>
                                 <div class="zoom-level" id="zoomLevel">100%</div>
-                                <button class="zoom-btn" onclick="adjustZoom(0.25)" title="Zoom in">+</button>
+                                <button class="zoom-btn" onclick="adjustZoom(0.15)" title="Zoom in">+</button>
                                 <button class="zoom-btn" onclick="resetZoom()" title="Reset zoom">⊡</button>
                             </div>
                             <div class="quartile-controls" id="quartileControls">
@@ -1395,7 +1391,8 @@
                     <option value="Anaphase bridge">Anaphase bridge</option>
                     <option value="Multipolar spindles">Multipolar spindles</option>
                     <option value="Micronuclei">Micronuclei</option>
-                    <option value="Mitosis failure">Mitosis failure</option>
+                    <option value="Mitotic failure">Mitotic failure</option>
+                    <option value="Aberration">Aberration</option>
                 </select>
             </div>
             <div class="form-group">
@@ -3060,9 +3057,8 @@
                     eventCard.style.backgroundColor = bgColor;
 
                     const notesHTML = event.notes ? `<div class="event-notes">${event.notes}</div>` : '';
-                    const coordsHTML = (event.x !== undefined && event.y !== undefined)
-                        ? `<div class="event-coords">@ (${event.x}, ${event.y})</div>`
-                        : '';
+                    // X,Y coordinates are kept in storage but not displayed on event cards
+                    const coordsHTML = '';
 
                     const hasNoType = !event.type || event.type === '(No type)' || event.type.trim() === '';
                     const isRectangle = event.type === 'Rectangle';
@@ -3078,7 +3074,7 @@
                                 <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Anaphase bridge')" title="Anaphase bridge">4</button>
                                 <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Multipolar spindles')" title="Multipolar spindles">5</button>
                                 <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Micronuclei')" title="Micronuclei">6</button>
-                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Mitosis failure')" title="Mitosis failure">7</button>
+                                <button class="type-selector-btn" onclick="event.stopPropagation(); setEventType('${event.id}', 'Mitotic failure')" title="Mitotic failure">7</button>
                             </div>
                         </div>
                     ` : '';
@@ -3145,7 +3141,8 @@
                     'Anaphase bridge': '#4F46E5',        // Indigo/Blue
                     'Multipolar spindles': '#EC4899',    // Pink
                     'Micronuclei': '#A855F7',            // Purple
-                    'Mitosis failure': '#9333EA',        // Violet
+                    'Mitotic failure': '#9333EA',        // Violet
+                    'Aberration': '#06B6D4',             // Cyan
                     'Rectangle': '#6B7280'               // Gray
                 };
                 marker.style.background = eventTypeMarkers[event.type] || '#EF4444';
@@ -3688,7 +3685,8 @@
             'Anaphase bridge': '#E0E7FF',        // Indigo/Blue
             'Multipolar spindles': '#FCE7F3',    // Pink
             'Micronuclei': '#DDD6FE',            // Purple
-            'Mitosis failure': '#F3E8FF',        // Violet
+            'Mitotic failure': '#F3E8FF',        // Violet
+            'Aberration': '#CFFAFE',             // Cyan
             'Rectangle': '#FAFAFA'               // Gray for Rep. Image rectangles
         };
 
@@ -3705,7 +3703,7 @@
                 'Anaphase bridge',
                 'Multipolar spindles',
                 'Micronuclei',
-                'Mitosis failure'
+                'Mitotic failure'
             ];
 
             document.addEventListener('keydown', (e) => {
@@ -3753,17 +3751,8 @@
                     addEventByType(eventTypes[index]);
                 }
                 // Modal controls
-                else if (e.key === 'n' || e.key === 'N') {
-                    openAddEventModal();
-                } else if (e.key === 'Escape') {
+                if (e.key === 'Escape') {
                     closeAddEventModal();
-                }
-                // Edit current event
-                else if (e.key === 'e' || e.key === 'E') {
-                    const currentFrameEvents = events.filter(ev => ev.frame === currentFrame);
-                    if (currentFrameEvents.length > 0) {
-                        editCurrentEvent();
-                    }
                 }
                 // Delete current event
                 else if (e.key === 'Delete' || e.key === 'Backspace') {

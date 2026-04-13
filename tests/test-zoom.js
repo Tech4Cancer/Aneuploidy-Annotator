@@ -10,8 +10,8 @@ module.exports = {
     // Test 1: Zoom controls exist
     try {
       const result = await page.evaluate(() => {
-        const zoomIn = document.querySelector('button[onclick*="adjustZoom(0.25)"]');
-        const zoomOut = document.querySelector('button[onclick*="adjustZoom(-0.25)"]');
+        const zoomIn = document.querySelector('button[onclick*="adjustZoom(0.15)"]');
+        const zoomOut = document.querySelector('button[onclick*="adjustZoom(-0.15)"]');
         const resetZoom = document.querySelector('button[onclick*="resetZoom"]');
         const zoomLevel = document.querySelector('#zoomLevel');
 
@@ -68,7 +68,7 @@ module.exports = {
     try {
       const result = await page.evaluate(() => {
         // Simulate zooming by clicking zoom in button, then reset
-        const zoomInBtn = document.querySelector('button[onclick*="adjustZoom(0.25)"]');
+        const zoomInBtn = document.querySelector('button[onclick*="adjustZoom(0.15)"]');
         const resetBtn = document.querySelector('button[onclick*="resetZoom"]');
         const zoomLevelDisplay = document.querySelector('#zoomLevel');
 
