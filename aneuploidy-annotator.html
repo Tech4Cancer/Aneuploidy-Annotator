@@ -1344,12 +1344,12 @@
                         <span class="zdim-label">Z</span>
                         <input type="range" class="zdim-slider" id="zSliceSlider" min="1" value="1" oninput="onZSliceChange(this.value)">
                         <span class="zdim-value" id="zSliceValue">1 / 1</span>
-                        <div id="eventMarkers" style="position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none;"></div>
                     </div>
-                    <div class="zdim-row" id="tFrameRow" style="display:none">
+                    <div class="zdim-row" id="tFrameRow" style="display:none; position: relative;">
                         <span class="zdim-label">T</span>
                         <input type="range" class="zdim-slider" id="tFrameSlider" min="1" value="1" oninput="onTFrameChange(this.value)">
                         <span class="zdim-value" id="tFrameValue">1 / 1</span>
+                        <div id="eventMarkers" style="position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none;"></div>
                     </div>
                     <div class="zdim-row" id="cChannelRow" style="display:none">
                         <span class="zdim-label">C</span>
@@ -2992,7 +2992,18 @@
                 document.getElementById('tFrameValue').textContent = `${currentT} / ${ijFrames}`;
             }
 
-            // Timeline functionality is now handled by event markers on Z-slice row
+            // Show T-frame slider when there are events, even without TIFF file
+            const tRow = document.getElementById('tFrameRow');
+            if (events.length > 0) {
+                tRow.style.display = 'flex';
+                // Ensure slider max/value are set properly for event timeline
+                const tSlider = document.getElementById('tFrameSlider');
+                tSlider.max = Math.max(totalFrames, 1);
+                tSlider.value = currentFrame;
+                document.getElementById('tFrameValue').textContent = `${currentFrame} / ${totalFrames}`;
+            } else if (!isTiffFile || ijFrames <= 1) {
+                tRow.style.display = 'none';
+            }
 
             // Update cell image or video
             if (hasVideo) {
