@@ -883,24 +883,32 @@
         }
 
         .event-marker {
-            width: 8px;
-            height: 100%;
+            width: 6px;
+            height: 6px;
             position: absolute;
-            top: 0;
-            border-radius: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 50%;
             background: #FF6B6B;
             cursor: pointer;
             transition: all 0.2s;
-            opacity: 0.7;
+            opacity: 0.8;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
         }
 
         .event-marker:hover {
+            width: 8px;
+            height: 8px;
+            transform: translateY(-50%);
             background: #FF4444;
             opacity: 1;
             z-index: 10;
         }
 
         .event-marker.current {
+            width: 8px;
+            height: 8px;
+            transform: translateY(-50%);
             background: #000000;
             opacity: 1;
             z-index: 10;
@@ -1316,7 +1324,7 @@
                     <div style="display: flex; align-items: center; gap: 8px; position: relative; font-family: 'Inter', sans-serif; font-size: 12px;">
                         <span style="color: #71717A;">Speed:</span>
                         <span id="speedValue" onclick="toggleSpeedPopover(event)" style="cursor: pointer; font-weight: 600; color: #000000; min-width: 30px;">1x</span>
-                        <div class="speed-popover" id="speedPopover" style="display: none; position: absolute; bottom: 100%; background: white; border: 1px solid #E4E4E7; border-radius: 6px; padding: 12px; white-space: nowrap; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div class="speed-popover" id="speedPopover">
                             <div style="font-size:11px; color:#A1A1AA; font-family:'Inter',sans-serif; margin-bottom: 8px;">
                                 <span>Playback speed</span>
                             </div>
@@ -3108,9 +3116,7 @@
                 const isCurrentFrame = event.frame === currentFrame;
 
                 marker.className = `event-marker ${isCurrentEvent ? 'current' : ''}`;
-                marker.style.left = `calc(${(event.frame / totalFrames) * 100}% - 4px)`; // -4px to center 8px marker
-                marker.style.width = '8px';
-                marker.style.height = '100%';
+                marker.style.left = `calc(${(event.frame / totalFrames) * 100}% - 3px)`; // -3px to center 6px dot
 
                 // Color based on event type
                 const color = getEventColor(event.type);
@@ -3126,8 +3132,6 @@
                     'Rectangle': '#6B7280'               // Gray
                 };
                 marker.style.background = eventTypeMarkers[event.type] || '#EF4444';
-                marker.style.borderRadius = '2px';
-                marker.style.opacity = '0.7';
 
                 marker.title = `${event.type} @ Frame ${event.frame}`;
                 marker.onclick = () => {
@@ -3705,7 +3709,8 @@
                     return;
                 }
 
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                // Don't process shortcuts when focused on input fields or sliders
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
 
                 // Event navigation
                 if (e.key === 'ArrowRight') {
