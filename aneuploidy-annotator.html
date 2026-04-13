@@ -2907,18 +2907,24 @@
 
                 if (zoomScale === prevScale) return; // No zoom change
 
-                // Zoom centered on cursor
-                const rect = canvasElement.getBoundingClientRect();
-                const mx = e.clientX - rect.left;
-                const my = e.clientY - rect.top;
+                // When zooming back to 100%, center the image
+                if (zoomScale === 1) {
+                    panX = 0;
+                    panY = 0;
+                } else {
+                    // Zoom centered on cursor
+                    const rect = canvasElement.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
 
-                // Map cursor position in screen space to image space
-                const imageX = (mx - panX) / prevScale;
-                const imageY = (my - panY) / prevScale;
+                    // Map cursor position in screen space to image space
+                    const imageX = (mx - panX) / prevScale;
+                    const imageY = (my - panY) / prevScale;
 
-                // Update pan so the image point stays under the cursor
-                panX = mx - imageX * zoomScale;
-                panY = my - imageY * zoomScale;
+                    // Update pan so the image point stays under the cursor
+                    panX = mx - imageX * zoomScale;
+                    panY = my - imageY * zoomScale;
+                }
 
                 applyZoomTransform();
             }, { passive: false });
