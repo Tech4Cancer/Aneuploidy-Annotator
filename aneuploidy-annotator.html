@@ -2574,11 +2574,11 @@
                 markerCanvas.height = canvasElement.height;
             }
 
-            // Match CSS position/size/transform of video canvas exactly
+            // Match CSS position/size of video canvas (but NOT transform - we draw at actual coordinates)
             markerCanvas.style.display = canvasElement.style.display || 'block';
             markerCanvas.style.left = canvasElement.style.left;
             markerCanvas.style.top = canvasElement.style.top;
-            markerCanvas.style.transform = canvasElement.style.transform;
+            markerCanvas.style.transform = 'none'; // Don't scale with the canvas
             markerCanvas.style.width = canvasElement.offsetWidth + 'px';
             markerCanvas.style.height = canvasElement.offsetHeight + 'px';
 
@@ -2597,10 +2597,14 @@
             const armLen = 28;
 
             // Adjust coordinates for quartile mode
-            const adjustedX = x - quartileOffsetX;
-            const adjustedY = y - quartileOffsetY;
+            let adjustedX = x - quartileOffsetX;
+            let adjustedY = y - quartileOffsetY;
 
-            // Skip if marker is outside the visible area (cropped quartile)
+            // Apply zoom and pan transforms to get screen coordinates
+            adjustedX = adjustedX * zoomScale + panX;
+            adjustedY = adjustedY * zoomScale + panY;
+
+            // Skip if marker is outside the visible area
             if (adjustedX < -armLen || adjustedX > markerCanvas.width + armLen ||
                 adjustedY < -armLen || adjustedY > markerCanvas.height + armLen) {
                 return;
