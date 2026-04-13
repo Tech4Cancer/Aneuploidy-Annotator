@@ -10,6 +10,7 @@ const fs = require('fs');
 const TEST_FILES = [
   'test-sessions.js',
   'test-event-markers.js',
+  'test-markers-visual.js',
   'test-navigation.js',
   'test-annotations.js',
   'test-import.js',
