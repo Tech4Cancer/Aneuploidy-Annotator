@@ -172,6 +172,7 @@ Aneuploidy-Annotator/
 - **Large files** — TIFF IFDs are parsed upfront (metadata only); pixel data is decoded lazily per frame and cached. Practical for files 1 GB+.
 - **TIFF formats** — Uses [UTIF.js](https://github.com/photopea/UTIF.js) for parsing. Supports 8-bit grayscale, 16-bit grayscale (auto contrast-stretched), RGB, and RGBA. Reads both ImageJ `ImageDescription` metadata and OME-XML for dimension order (XYZCT / XYZTC etc.).
 - **No dependencies to install** — All libraries (UTIF.js, JSZip) are loaded from CDN at runtime.
+- **Windows Defender false positives** — On Windows, Microsoft Defender may flag the exported ZIP file as potentially harmful (false positive). If this happens, click "Actions" → "Allow" to trust the file, or temporarily exclude your Downloads folder from real-time scanning.
 
 ---
 
