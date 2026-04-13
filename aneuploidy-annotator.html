@@ -254,11 +254,18 @@
             background: #F4F4F5;
         }
 
+        .event-camera-icon {
+            position: absolute;
+            left: 8px;
+            top: 6px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
         .event-export-check {
             position: absolute;
             left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 24px;
             width: 15px;
             height: 15px;
             cursor: pointer;
@@ -3080,6 +3087,7 @@
                     ` : '';
 
                     eventCard.innerHTML = `
+                        <div class="event-camera-icon">📷</div>
                         <input type="checkbox" class="event-export-check" ${event.exportFrame ? 'checked' : ''}
                             onclick="event.stopPropagation(); toggleEventExport('${event.id}', this.checked)" title="Export frame image">
                         <div class="event-header">
