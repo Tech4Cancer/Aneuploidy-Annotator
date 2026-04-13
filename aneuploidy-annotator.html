@@ -1292,7 +1292,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="image-label" id="imageLabel" style="display: none;">Cell Frame #1</div>
                     <div class="cursor-coords" id="cursorCoords" style="display: none;">X: 0, Y: 0</div>
                 </div>
             </div>
@@ -1672,7 +1671,6 @@
                         const videoSizeMB = session.videoSize ? ` (${(session.videoSize / (1024 * 1024)).toFixed(1)} MB)` : '';
                         document.getElementById('placeholderText').innerHTML = `Video: ${session.videoName}${videoSizeMB}<br><span style="font-size: 13px; color: #71717A;">Click here to load the video file</span>`;
                         document.getElementById('placeholderText').style.display = 'block';
-                        document.getElementById('imageLabel').style.display = 'none';
                     }
                 } catch (error) {
                     console.error('Error loading video from IndexedDB:', error);
@@ -1680,15 +1678,13 @@
                     canvasElement.style.display = 'none';
                     document.getElementById('placeholderText').innerHTML = `Video: ${session.videoName}<br><span style="font-size: 13px; color: #71717A;">Click here to load the video file</span>`;
                     document.getElementById('placeholderText').style.display = 'block';
-                    document.getElementById('imageLabel').style.display = 'none';
-                }
+                    }
             } else {
                 console.log('No video in session');
                 hasVideo = false;
                 canvasElement.style.display = 'none';
                 document.getElementById('placeholderText').textContent = 'Upload a video to get started';
                 document.getElementById('placeholderText').style.display = 'block';
-                document.getElementById('imageLabel').style.display = 'none';
             }
 
             updateSessionDropdown();
@@ -1726,8 +1722,7 @@
                     document.getElementById('placeholderText').style.visibility = 'hidden';
                     canvasElement.style.display = 'block';
                     canvasElement.style.visibility = 'visible';
-                    document.getElementById('imageLabel').style.display = 'block';
-
+    
                     if (currentSessionId) {
                         sessions[currentSessionId].totalFrames = totalFrames;
                         saveSessions();
@@ -1864,7 +1859,6 @@
                 document.getElementById('placeholderText').style.visibility = 'hidden';
                 canvasElement.style.display = 'block';
                 canvasElement.style.visibility = 'visible';
-                document.getElementById('imageLabel').style.display = 'block';
 
                 if (currentSessionId) {
                     sessions[currentSessionId].totalFrames = totalFrames;
@@ -2124,7 +2118,6 @@
                 console.log('Canvas display set to:', canvasElement.style.display);
 
                 // Show label
-                document.getElementById('imageLabel').style.display = 'block';
 
                 canvasElement.width = videoElement.videoWidth;
                 canvasElement.height = videoElement.videoHeight;
@@ -2152,7 +2145,6 @@
                 hasVideo = false;
                 canvasElement.style.display = 'none';
                 document.getElementById('placeholderText').style.display = 'block';
-                document.getElementById('imageLabel').style.display = 'none';
                 alert('Error loading video. The video may be too large or corrupted.');
             };
         }
@@ -2452,7 +2444,6 @@
             }
             isRepImageMode = true;
             canvasElement.style.cursor = 'crosshair';
-            alert('Click and drag to select a rectangle region. The region will be added to events.');
         }
 
         function cancelRepImageMode() {
@@ -2550,7 +2541,6 @@
                 hasVideo = false;
                 canvasElement.style.display = 'none';
                 document.getElementById('placeholderText').style.display = 'block';
-                document.getElementById('imageLabel').style.display = 'none';
                 updateSessionDropdown();
                 updateUI();
                 openNewSessionModal();
@@ -2714,7 +2704,14 @@
 
                 // Rep. Image rectangle drawing
                 if (!isRepImageMode || !repImageDrawing) return;
-                repImageEnd = coords;
+                // Constrain to square - use the larger dimension
+                const dx = coords.x - repImageStart.x;
+                const dy = coords.y - repImageStart.y;
+                const size = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
+                repImageEnd = {
+                    x: repImageStart.x + (dx > 0 ? size : -size),
+                    y: repImageStart.y + (dy > 0 ? size : -size)
+                };
                 // Clear marker canvas and draw rectangle
                 markerContext.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
                 drawRepImageRectangle();
@@ -2973,11 +2970,8 @@
                     titleText += `  C ${currentC}/${ijChannels}`;
                 }
                 document.getElementById('frameCounter').textContent = titleText;
-                document.getElementById('imageLabel').textContent = `Cell Frame #${currentFrame}`;
-                document.getElementById('imageLabel').style.display = 'block';
             } else {
                 document.getElementById('frameCounter').textContent = 'No Video Loaded';
-                document.getElementById('imageLabel').style.display = 'none';
             }
 
             // Keep T slider in sync with currentFrame
