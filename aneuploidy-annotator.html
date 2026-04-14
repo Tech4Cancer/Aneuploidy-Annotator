@@ -3366,26 +3366,22 @@
                         my = ch / 2;
                     }
 
-                    // Map screen cursor position to image space
-                    // The canvas is positioned at: left = cw/2 - (nw*scale)/2 + panX
-                    // mx,my is in container space
-                    // Canvas top-left in container space = cw/2 - (nw*prevScale)/2 + panX
-                    const canvasX = cw / 2 - (nw * prevScale) / 2 + panX;
-                    const canvasY = ch / 2 - (nh * prevScale) / 2 + panY;
-                    const imageX = (mx - canvasX) / prevScale;
-                    const imageY = (my - canvasY) / prevScale;
+                    // Map screen cursor position to image space at previous zoom level
+                    // canvas.left = cw/2 - (nw*prevScale)/2 + panX
+                    // canvas local point (imageX, imageY) appears at screen position:
+                    // screen_x = left + imageX * prevScale
+                    // So: imageX = (screen_x - left) / prevScale = (mx - left) / prevScale
+                    const prevLeft = cw / 2 - (nw * prevScale) / 2 + panX;
+                    const prevTop = ch / 2 - (nh * prevScale) / 2 + panY;
+                    const imageX = (mx - prevLeft) / prevScale;
+                    const imageY = (my - prevTop) / prevScale;
 
-                    // Calculate new pan so that image point appears at screen position mx, my
-                    const newCanvasX = cw / 2 - (nw * zoomScale) / 2;
-                    const newCanvasY = ch / 2 - (nh * zoomScale) / 2;
-                    panX = newCanvasX + imageX * zoomScale - mx;
-                    panY = newCanvasY + imageY * zoomScale - my;
-
-                    // Clamp pan to reasonable bounds to keep image visible
-                    const maxPanX = (nw * zoomScale - cw) / 2;
-                    const maxPanY = (nh * zoomScale - ch) / 2;
-                    panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
-                    panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+                    // Now we need new pan values so that this image point stays at screen pos (mx, my)
+                    // At new zoom: left = cw/2 - (nw*zoomScale)/2 + panX_new
+                    // And: mx = left_new + imageX * zoomScale
+                    // So: panX_new = mx - imageX * zoomScale - cw/2 + (nw*zoomScale)/2
+                    panX = mx - imageX * zoomScale - cw / 2 + (nw * zoomScale) / 2;
+                    panY = my - imageY * zoomScale - ch / 2 + (nh * zoomScale) / 2;
                 }
 
                 applyZoomTransform();
