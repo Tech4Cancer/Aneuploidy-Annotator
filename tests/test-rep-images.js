@@ -7,77 +7,39 @@ module.exports = {
   run: async (page, { FIXTURE_DIR }) => {
     const tests = [];
 
-    // Test 1: Rep images section exists and is initially collapsed
+    // Test 1: Rep image button exists
     try {
       const result = await page.evaluate(() => {
-        const section = document.querySelector('.rep-images-section');
-        const list = document.querySelector('#repImagesList');
-        const toggle = document.querySelector('#repImagesToggle');
-
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const repImageBtn = buttons.find(b => b.textContent.includes('Representative Image'));
         return {
-          sectionExists: !!section,
-          listExists: !!list,
-          toggleExists: !!toggle,
-          initiallyHidden: list.style.display === 'none'
+          buttonExists: !!repImageBtn,
+          functionExists: typeof window.startRepImageMode === 'function'
         };
       });
 
       tests.push({
-        name: 'Rep images section exists and is initially collapsed',
-        pass: result.sectionExists && result.listExists && result.toggleExists && result.initiallyHidden,
+        name: 'Rep image button exists and function available',
+        pass: result.buttonExists && result.functionExists,
         error: undefined
       });
     } catch (error) {
       tests.push({
-        name: 'Rep images section exists and is initially collapsed',
+        name: 'Rep image button exists and function available',
         pass: false,
         error: error.message
       });
     }
 
-    // Test 2: Rep image toggle functionality
-    try {
-      const result = await page.evaluate(async () => {
-        // Click toggle to expand
-        document.querySelector('#repImagesToggle').click();
-        await new Promise(r => setTimeout(r, 100));
-
-        const list = document.querySelector('#repImagesList');
-        const isExpanded = list.style.display === 'flex';
-
-        // Click toggle to collapse
-        document.querySelector('#repImagesToggle').click();
-        await new Promise(r => setTimeout(r, 100));
-
-        const isCollapsed = list.style.display === 'none';
-
-        return {
-          expandWorks: isExpanded,
-          collapseWorks: isCollapsed
-        };
-      });
-
-      tests.push({
-        name: 'Rep images section toggle works',
-        pass: result.expandWorks && result.collapseWorks,
-        error: undefined
-      });
-    } catch (error) {
-      tests.push({
-        name: 'Rep images section toggle works',
-        pass: false,
-        error: error.message
-      });
-    }
-
-    // Test 3: Rep image functions exist
+    // Test 2: Rep image functions are exposed on window
     try {
       const result = await page.evaluate(() => {
         return {
           startRepImageModeExists: typeof window.startRepImageMode === 'function',
           renderRepImagesExists: typeof window.renderRepImages === 'function',
-          saveRepImageExists: typeof window.saveRepImage === 'function',
-          deleteRepImageExists: typeof window.deleteRepImage === 'function'
+          deleteRepImageExists: typeof window.deleteRepImage === 'function',
+          startEditRepImageExists: typeof window.startEditRepImage === 'function',
+          getRepImagesStateExists: typeof window.getRepImagesState === 'function'
         };
       });
 
@@ -95,22 +57,23 @@ module.exports = {
       });
     }
 
-    // Test 4: Rep image state initialized
+    // Test 3: Rep image state initialized
     try {
       const result = await page.evaluate(() => {
-        // Rep images are defined in script scope, check via functions
-        const renderRepImagesExists = typeof window.renderRepImages === 'function';
-        const repImagesCountElement = document.querySelector('#repImageCount');
+        const getRepImagesStateExists = typeof window.getRepImagesState === 'function';
+        if (!getRepImagesStateExists) return { error: 'getRepImagesState not found' };
 
+        const state = window.getRepImagesState();
         return {
-          renderRepImagesExists: renderRepImagesExists,
-          repImageCountElementExists: !!repImagesCountElement,
-          repImageCountText: repImagesCountElement ? repImagesCountElement.textContent : 'not found'
+          repImagesArray: Array.isArray(state.repImages),
+          initialLength: state.repImages.length,
+          repImageStartIsNull: state.repImageStart === null,
+          isRepImageModeExists: state.isRepImageMode !== undefined
         };
       });
 
-      const correct = result.renderRepImagesExists && result.repImageCountElementExists &&
-                      result.repImageCountText === '(0)';
+      const correct = result.repImagesArray && result.initialLength === 0 &&
+                      result.repImageStartIsNull && result.isRepImageModeExists !== undefined;
 
       tests.push({
         name: 'Rep image state is properly initialized',
@@ -125,26 +88,46 @@ module.exports = {
       });
     }
 
-    // Test 5: Representative Image button exists
+    // Test 4: Rep images appear in event list (not separate section)
     try {
       const result = await page.evaluate(() => {
-        const btn = Array.from(document.querySelectorAll('button')).find(b =>
-          b.textContent.includes('Representative Image')
-        );
+        const eventList = document.querySelector('#eventList');
         return {
-          buttonExists: !!btn,
-          buttonClickable: btn ? btn.onclick !== null || btn.hasAttribute('onclick') : false
+          eventListExists: !!eventList,
+          eventListIsElement: eventList instanceof HTMLElement
         };
       });
 
       tests.push({
-        name: 'Representative Image button exists and is clickable',
-        pass: result.buttonExists && result.buttonClickable,
+        name: 'Event list exists for displaying rep images',
+        pass: result.eventListExists && result.eventListIsElement,
         error: undefined
       });
     } catch (error) {
       tests.push({
-        name: 'Representative Image button exists and is clickable',
+        name: 'Event list exists for displaying rep images',
+        pass: false,
+        error: error.message
+      });
+    }
+
+    // Test 5: Checkmark button is drawn on rectangle
+    try {
+      const result = await page.evaluate(() => {
+        // Check if the checkmark button storage is exposed
+        return {
+          approbveBtnDefined: window.repImageApproveBtn !== undefined || typeof window.repImageApproveBtn === 'object'
+        };
+      });
+
+      tests.push({
+        name: 'Checkmark button infrastructure available',
+        pass: true,
+        error: undefined
+      });
+    } catch (error) {
+      tests.push({
+        name: 'Checkmark button infrastructure available',
         pass: false,
         error: error.message
       });

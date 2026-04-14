@@ -1318,17 +1318,6 @@
 
                 <button class="type-btn" onclick="startRepImageMode()" style="width: 100%; margin-top: 12px; margin-bottom: 12px; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Representative Image</button>
 
-                <!-- Rep Images Section -->
-                <div class="rep-images-section">
-                    <div class="annotation-title" style="margin-top: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRepImagesSection()">
-                        <span>Rep Images <span id="repImageCount" style="font-weight: 400; color: #71717A;">(0)</span></span>
-                        <span id="repImagesToggle" style="font-size: 14px; transition: transform 0.2s;">▼</span>
-                    </div>
-                    <div class="rep-images-list" id="repImagesList" style="display: none; gap: 8px; flex-wrap: wrap;">
-                        <!-- Rep images will be populated here -->
-                    </div>
-                </div>
-
                 <div class="annotation-title" style="margin-top: 12px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
                 <div class="event-list" id="eventList">
                     <!-- Events will be populated here -->
@@ -1746,12 +1735,36 @@
 
             currentSessionId = sessionId;
             events = session.events || [];
-            repImages = session.repImages || [];
+
+            // Migrate old repImages to events array if needed
+            if (session.repImages && session.repImages.length > 0) {
+                session.repImages.forEach(repImage => {
+                    const existingEvent = events.find(e => e.id === repImage.id);
+                    if (!existingEvent) {
+                        events.push({
+                            id: repImage.id,
+                            frame: repImage.frame,
+                            type: 'Rectangle',
+                            x: repImage.x,
+                            y: repImage.y,
+                            width: repImage.width,
+                            height: repImage.height,
+                            imageData: repImage.imageData,
+                            exportFrame: false,
+                            notes: ''
+                        });
+                    }
+                });
+                // Clear old repImages array
+                session.repImages = [];
+                saveSessions();
+            }
+
+            repImages = []; // Keep empty for compatibility
             currentFrame = session.currentFrame || 1;
             totalFrames = session.totalFrames || 180;
             videoFPS = session.videoFPS || 30;
             selectedRepImageId = null;
-            renderRepImages();
 
             // Try to load file from IndexedDB
             if (session.videoPath) {
@@ -2582,67 +2595,29 @@
             // Exit edit mode
             currentRepImageEditId = null;
             cancelRepImageMode();
-            renderRepImages();
             updateUI();
         }
 
         function renderRepImages() {
-            const repImagesList = document.getElementById('repImagesList');
-            repImagesList.innerHTML = '';
-
-            repImages.forEach(repImage => {
-                const thumb = document.createElement('div');
-                thumb.className = 'rep-image-thumb';
-                if (repImage.imageData) {
-                    thumb.style.backgroundImage = `url(${repImage.imageData})`;
-                }
-                if (selectedRepImageId === repImage.id) {
-                    thumb.classList.add('selected');
-                }
-
-                // Delete button
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'rep-image-thumb-delete';
-                deleteBtn.textContent = '×';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteRepImage(repImage.id);
-                };
-
-                // Click to select and edit
-                thumb.onclick = () => {
-                    if (selectedRepImageId === repImage.id) {
-                        // Double-click to edit
-                        startEditRepImage(repImage.id);
-                    } else {
-                        selectedRepImageId = repImage.id;
-                        renderRepImages();
-                    }
-                };
-
-                thumb.appendChild(deleteBtn);
-                repImagesList.appendChild(thumb);
-            });
-
-            // Update count
-            document.getElementById('repImageCount').textContent = `(${repImages.length})`;
+            // Rep images are now rendered as events in the event list
+            // This function is kept for compatibility with window.renderRepImages
         }
 
         function deleteRepImage(repImageId) {
             if (!confirm('Delete this rep image?')) return;
 
-            repImages = repImages.filter(r => r.id !== repImageId);
-            if (selectedRepImageId === repImageId) {
-                selectedRepImageId = null;
+            events = events.filter(e => e.id !== repImageId);
+            if (currentEventId === repImageId) {
+                currentEventId = null;
             }
 
             // Save to session
             if (currentSessionId && sessions[currentSessionId]) {
-                sessions[currentSessionId].repImages = repImages;
+                sessions[currentSessionId].events = events;
                 saveSessions();
             }
 
-            renderRepImages();
+            updateUI();
         }
 
         function startEditRepImage(repImageId) {
@@ -2651,14 +2626,14 @@
                 return;
             }
 
-            const repImage = repImages.find(r => r.id === repImageId);
-            if (!repImage) return;
+            const event = events.find(e => e.id === repImageId && e.type === 'Rectangle');
+            if (!event) return;
 
             currentRepImageEditId = repImageId;
-            currentFrame = repImage.frame;
+            currentFrame = event.frame;
             isRepImageMode = true;
-            repImageStart = { x: repImage.x, y: repImage.y };
-            repImageEnd = { x: repImage.x + repImage.width, y: repImage.y + repImage.height };
+            repImageStart = { x: event.x, y: event.y };
+            repImageEnd = { x: event.x + event.width, y: event.y + event.height };
             repImageDrawing = false;
             canvasElement.style.cursor = 'default';
 
@@ -3033,6 +3008,36 @@
 
             canvasElement.addEventListener('click', (e) => {
                 if (!hasVideo) return;
+
+                // Check if clicking on the rep image approve button
+                if (isRepImageMode && repImageStart && repImageEnd && window.repImageApproveBtn) {
+                    const rect = canvasElement.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+
+                    // Scale click coordinates to canvas image coordinates
+                    const scaleX = canvasElement.width / rect.width;
+                    const scaleY = canvasElement.height / rect.height;
+                    const imageClickX = clickX * scaleX;
+                    const imageClickY = clickY * scaleY;
+
+                    const btn = window.repImageApproveBtn;
+                    if (imageClickX >= btn.x && imageClickX <= btn.x + btn.width &&
+                        imageClickY >= btn.y && imageClickY <= btn.y + btn.height) {
+                        // Approve button clicked - finalize rep image
+                        const x1 = Math.min(repImageStart.x, repImageEnd.x);
+                        const y1 = Math.min(repImageStart.y, repImageEnd.y);
+                        const x2 = Math.max(repImageStart.x, repImageEnd.x);
+                        const y2 = Math.max(repImageStart.y, repImageEnd.y);
+                        const width = x2 - x1;
+                        const height = y2 - y1;
+                        if (width > 5 && height > 5) {
+                            addRepImageEvent(x1, y1, width, height);
+                        }
+                        return;
+                    }
+                }
+
                 if (isRepImageMode) return; // Don't process if in Rep. Image mode
 
                 // Coord-picking mode for Add Event panel
@@ -3735,21 +3740,28 @@
         function addRepImageEvent(x, y, width, height) {
             if (currentRepImageEditId) {
                 // Updating an existing rep image
-                const repImage = repImages.find(r => r.id === currentRepImageEditId);
-                if (repImage) {
-                    saveRepImage(repImage.id, x, y, width, height, canvasElement);
+                const event = events.find(e => e.id === currentRepImageEditId);
+                if (event) {
+                    event.x = x;
+                    event.y = y;
+                    event.width = width;
+                    event.height = height;
+                    currentRepImageEditId = null;
                 }
             } else {
-                // Creating a new rep image
+                // Creating a new rep image event
                 const repImageId = Date.now() + Math.random();
-                const repImage = {
+                const newEvent = {
                     id: repImageId,
                     frame: currentFrame,
+                    type: 'Rectangle',
                     x: x,
                     y: y,
                     width: width,
                     height: height,
-                    imageData: null
+                    imageData: null,
+                    exportFrame: false,
+                    notes: ''
                 };
 
                 // Capture the cropped image from canvas
@@ -3761,20 +3773,17 @@
                 // Get the image from the current canvas (videoCanvas with video or TIFF frame rendered)
                 if (canvasElement && canvasElement.width > 0 && canvasElement.height > 0) {
                     tempCtx.drawImage(canvasElement, x, y, width, height, 0, 0, width, height);
-                    repImage.imageData = tempCanvas.toDataURL('image/png');
+                    newEvent.imageData = tempCanvas.toDataURL('image/png');
                 }
 
-                repImages.push(repImage);
+                events.push(newEvent);
+                currentEventId = repImageId;
+            }
 
-                // Save to session
-                if (currentSessionId && sessions[currentSessionId]) {
-                    sessions[currentSessionId].repImages = repImages;
-                    saveSessions();
-                }
-
-                selectedRepImageId = repImageId;
-                repImagesExpanded = true;
-                renderRepImages();
+            // Save to session
+            if (currentSessionId && sessions[currentSessionId]) {
+                sessions[currentSessionId].events = events;
+                saveSessions();
             }
 
             cancelRepImageMode();
@@ -3788,12 +3797,43 @@
             const y1 = Math.min(repImageStart.y, repImageEnd.y);
             const x2 = Math.max(repImageStart.x, repImageEnd.x);
             const y2 = Math.max(repImageStart.y, repImageEnd.y);
+            const width = x2 - x1;
+            const height = y2 - y1;
 
+            // Draw dashed rectangle outline
             markerContext.strokeStyle = '#000000';
             markerContext.lineWidth = 2;
             markerContext.setLineDash([5, 5]);
-            markerContext.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            markerContext.strokeRect(x1, y1, width, height);
             markerContext.setLineDash([]);
+
+            // Draw checkmark button in top-right corner if rectangle has been drawn
+            if (!repImageDrawing && width > 0 && height > 0) {
+                const buttonSize = 24;
+                const buttonX = x2 - buttonSize - 4;
+                const buttonY = y1 + 4;
+
+                // Draw button background
+                markerContext.fillStyle = '#10B981';
+                markerContext.fillRect(buttonX, buttonY, buttonSize, buttonSize);
+
+                // Draw checkmark
+                markerContext.strokeStyle = '#FFFFFF';
+                markerContext.lineWidth = 2;
+                markerContext.beginPath();
+                markerContext.moveTo(buttonX + 6, buttonY + 12);
+                markerContext.lineTo(buttonX + 10, buttonY + 16);
+                markerContext.lineTo(buttonX + 18, buttonY + 8);
+                markerContext.stroke();
+
+                // Store button bounds for click detection
+                window.repImageApproveBtn = {
+                    x: buttonX,
+                    y: buttonY,
+                    width: buttonSize,
+                    height: buttonSize
+                };
+            }
         }
 
         document.querySelectorAll('.type-btn').forEach(btn => {

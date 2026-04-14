@@ -139,37 +139,32 @@ module.exports = {
       });
     }
 
-    // Test 4: Rep image rendering function works
+    // Test 4: Rep image events are rendered in event list
     try {
       const result = await page.evaluate(async () => {
-        if (typeof window.renderRepImages === 'function') {
+        if (typeof window.getRepImagesState === 'function') {
           // Get initial state
           const initialState = window.getRepImagesState();
 
-          // Call render function
-          window.renderRepImages();
-          await new Promise(r => setTimeout(r, 100));
-
-          // Check if list exists and has correct structure
-          const list = document.querySelector('#repImagesList');
+          // Check if event list exists
+          const eventList = document.querySelector('#eventList');
           return {
-            renderCalled: true,
-            listExists: !!list,
-            listIsElement: list instanceof HTMLElement,
-            initialCount: initialState.repImages.length
+            eventListExists: !!eventList,
+            eventListIsElement: eventList instanceof HTMLElement,
+            initialRepImageCount: initialState.repImages.length
           };
         }
-        return { error: 'renderRepImages not found' };
+        return { error: 'getRepImagesState not found' };
       });
 
       tests.push({
-        name: 'Rep image rendering displays items in list',
-        pass: result.renderCalled && result.listExists && result.listIsElement,
+        name: 'Rep image events are rendered in event list',
+        pass: result.eventListExists && result.eventListIsElement,
         error: result.error
       });
     } catch (error) {
       tests.push({
-        name: 'Rep image rendering displays items in list',
+        name: 'Rep image events are rendered in event list',
         pass: false,
         error: error.message
       });
