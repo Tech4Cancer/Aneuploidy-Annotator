@@ -3866,11 +3866,12 @@
             markerContext.strokeRect(x1, y1, width, height);
             markerContext.setLineDash([]);
 
-            // Draw checkmark button in top-right corner if rectangle has been drawn
+            // Draw checkmark button to the right of the rectangle if rectangle has been drawn
             if (!repImageDrawing && width > 0 && height > 0) {
                 const buttonSize = 24;
-                const buttonX = x2 - buttonSize - 4;
-                const buttonY = y1 + 4;
+                const padding = 8;
+                const buttonX = x2 + padding;
+                const buttonY = y1; // Align with top of rectangle
 
                 // Draw button background
                 markerContext.fillStyle = '#10B981';
