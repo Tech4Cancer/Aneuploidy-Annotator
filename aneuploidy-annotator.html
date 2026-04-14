@@ -403,7 +403,7 @@
 
         .rep-image-thumbnail {
             width: 100%;
-            height: 80px;
+            aspect-ratio: 1;
             object-fit: cover;
             border-radius: 6px;
             background: #E4E4E7;
@@ -4162,7 +4162,7 @@
             metadata += `Video Name: ${session.videoName || 'No video'}\nVideo Size: ${videoSizeMB} MB\n`;
             metadata += `Total Frames: ${session.totalFrames}\nFrame Rate: ${session.videoFPS} FPS\n`;
             metadata += `\n=== Annotation Statistics ===\n`;
-            metadata += `Total Events: ${regularEvents.length}\nRepresentative Images: ${repImages.length}\nFrames Annotated: ${new Set(regularEvents.map(e => e.frame)).size}\n`;
+            metadata += `Total Events: ${regularEvents.length}\nRepresentative Images: ${repImages.length}\nUnique Frames Annotated: ${new Set(regularEvents.map(e => e.frame)).size}\n`;
             const typeCounts = {};
             regularEvents.forEach(ev => { typeCounts[ev.type] = (typeCounts[ev.type] || 0) + 1; });
             metadata += `\n=== Events by Type ===\n`;
@@ -4203,6 +4203,8 @@
                 // Export rep images
                 if (checkedRepImages.length > 0) {
                     const repImagesFolder = folder.folder('representative_images');
+                    // Track image count per frame to avoid duplicate filenames
+                    const frameImageCounts = {};
                     for (const ev of checkedRepImages) {
                         try {
                             let blob = null;
@@ -4213,7 +4215,11 @@
                                 blob = await captureVideoFrameImage(ev.frame, rect);
                             }
                             if (blob) {
-                                const imgName = `${sanitizedName}_frame${ev.frame}_repimage.png`;
+                                // Use event ID as unique identifier for same-frame images
+                                const frameCount = frameImageCounts[ev.frame] || 0;
+                                frameImageCounts[ev.frame] = frameCount + 1;
+                                const suffix = frameCount > 0 ? `_${frameCount + 1}` : '';
+                                const imgName = `${sanitizedName}_frame${ev.frame}_repimage${suffix}.png`;
                                 repImagesFolder.file(imgName, blob);
                             }
                         } catch (err) {
