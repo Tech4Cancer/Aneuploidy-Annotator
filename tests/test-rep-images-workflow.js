@@ -11,7 +11,7 @@ module.exports = {
     async function setupSession() {
       await page.evaluate(async () => {
         const buttons = Array.from(document.querySelectorAll('button'));
-        const newSessionBtn = buttons.find(btn => btn.textContent.includes('+ New Session'));
+        const newSessionBtn = buttons.find(btn => btn.textContent.includes('New Session'));
         if (newSessionBtn) {
           newSessionBtn.click();
           await new Promise(resolve => setTimeout(resolve, 400));
@@ -40,7 +40,7 @@ module.exports = {
 
       const result = await page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button'));
-        const repImageBtn = buttons.find(btn => btn.textContent.includes('Representative Image'));
+        const repImageBtn = buttons.find(btn => btn.textContent.includes('Add Rep'));
         if (!repImageBtn) {
           return { error: 'Rep Image button not found' };
         }

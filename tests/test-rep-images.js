@@ -11,7 +11,7 @@ module.exports = {
     try {
       const result = await page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button'));
-        const repImageBtn = buttons.find(b => b.textContent.includes('Representative Image'));
+        const repImageBtn = buttons.find(b => b.textContent.includes('Add Rep'));
         return {
           buttonExists: !!repImageBtn,
           functionExists: typeof window.startRepImageMode === 'function'
