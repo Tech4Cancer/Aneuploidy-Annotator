@@ -3351,6 +3351,10 @@
                     // Zoom centered on cursor position (or container center if outside bounds)
                     const rect = canvasElement.getBoundingClientRect();
                     const containerRect = container.getBoundingClientRect();
+                    const cw = container.clientWidth;
+                    const ch = container.clientHeight;
+                    const nw = canvasElement.offsetWidth;
+                    const nh = canvasElement.offsetHeight;
 
                     // Check if cursor is actually over the canvas
                     let mx, my;
@@ -3361,17 +3365,31 @@
                         my = e.clientY - rect.top;
                     } else {
                         // Cursor is outside canvas (e.g., trackpad scroll) - zoom toward container center
-                        mx = containerRect.width / 2;
-                        my = containerRect.height / 2;
+                        mx = cw / 2;
+                        my = ch / 2;
                     }
 
-                    // Map cursor position in screen space to image space
-                    const imageX = (mx - panX) / prevScale;
-                    const imageY = (my - panY) / prevScale;
+                    // Map screen cursor position to image space
+                    // The canvas is positioned at: left = cw/2 - (nw*scale)/2 + panX
+                    // So: canvas_screen_x = cw/2 - (nw*prevScale)/2 + panX
+                    // Screen to canvas local: canvas_local_x = screen_x - canvas_screen_x
+                    // Canvas local to image: image_x = canvas_local_x / prevScale
+                    const canvasScreenX = cw / 2 - (nw * prevScale) / 2 + panX;
+                    const canvasScreenY = ch / 2 - (nh * prevScale) / 2 + panY;
+                    const imageX = (mx - canvasScreenX) / prevScale;
+                    const imageY = (my - canvasScreenY) / prevScale;
 
-                    // Update pan so the image point stays under the cursor
-                    panX = mx - imageX * zoomScale;
-                    panY = my - imageY * zoomScale;
+                    // Calculate new pan so that image point appears at screen position mx, my
+                    const newCanvasScreenX = cw / 2 - (nw * zoomScale) / 2;
+                    const newCanvasScreenY = ch / 2 - (nh * zoomScale) / 2;
+                    panX = newCanvasScreenX + imageX * zoomScale - mx;
+                    panY = newCanvasScreenY + imageY * zoomScale - my;
+
+                    // Clamp pan to reasonable bounds
+                    const maxPanX = (nw * zoomScale - cw) / 2;
+                    const maxPanY = (nh * zoomScale - ch) / 2;
+                    panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+                    panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
                 }
 
                 applyZoomTransform();
