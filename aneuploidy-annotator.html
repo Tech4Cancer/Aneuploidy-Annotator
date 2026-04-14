@@ -3447,13 +3447,9 @@
                     framePercent = ((event.frame - min) / range) * 100;
                 }
 
-                // The marker needs to be centered on the slider thumb
-                // Slider track width relative to container width
-                const sliderComputedStyle = window.getComputedStyle(sliderElement);
-                const sliderTrackPercent = framePercent;
-
                 // Position marker at exact slider thumb position, centered
-                marker.style.left = `calc(${sliderTrackPercent}% - 3px)`;
+                // The marker is 6px wide, so -3px centers it on the slider thumb
+                marker.style.left = `calc(${framePercent}% - 3px)`;
 
                 // Color based on event type
                 const color = getEventColor(event.type);
