@@ -747,7 +747,7 @@
             width: 80px;
             accent-color: #000;
             cursor: pointer;
-            background: linear-gradient(to right, #E4E4E7 0%, #E4E4E7 calc(33.33% - 1px), #000 calc(33.33%), #000 calc(33.33% + 1px), #E4E4E7 calc(33.33% + 2px), #E4E4E7 100%);
+            background: linear-gradient(to right, #E4E4E7 0%, #E4E4E7 calc(50% - 1px), #000 calc(50%), #000 calc(50% + 1px), #E4E4E7 calc(50% + 2px), #E4E4E7 100%);
             -webkit-appearance: none;
             appearance: none;
             height: 6px;
@@ -1396,7 +1396,7 @@
                             <div class="brightness-control">
                                 <span class="brightness-icon">☀</span>
                                 <input type="range" class="brightness-slider" id="brightnessSlider"
-                                    min="0" max="300" value="100" oninput="onBrightnessChange(this.value)">
+                                    min="50" max="150" value="100" oninput="onBrightnessChange(this.value)">
                                 <button class="brightness-reset" onclick="resetBrightness()" title="Reset brightness">↺</button>
                             </div>
                             <div class="zoom-controls">
