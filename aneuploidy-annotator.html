@@ -2619,6 +2619,8 @@
 
             // Get all Rectangle events (rep images)
             const repImageEvents = events.filter(e => e.type === 'Rectangle');
+            console.log('renderRepImages called. Found Rectangle events:', repImageEvents.length);
+            console.log('All events:', events.map(e => ({ id: e.id, type: e.type, frame: e.frame })));
 
             // Update count
             document.getElementById('repImageCount').textContent = `(${repImageEvents.length})`;
@@ -3862,6 +3864,8 @@
         }
 
         function addRepImageEvent(x, y, width, height) {
+            console.log('addRepImageEvent called:', { x, y, width, height, currentFrame });
+
             if (currentRepImageEditId) {
                 // Updating an existing rep image
                 const event = events.find(e => e.id === currentRepImageEditId);
@@ -3888,6 +3892,8 @@
                     notes: ''
                 };
 
+                console.log('New rep image event created:', newEvent);
+
                 // Capture the cropped image from canvas
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = width;
@@ -3902,18 +3908,18 @@
 
                 events.push(newEvent);
                 currentEventId = repImageId;
-
-                // Auto-expand rep images section when a new rep image is created
-                repImagesExpanded = true;
+                console.log('Rep image added to events array. Total events:', events.length);
             }
 
             // Save to session
             if (currentSessionId && sessions[currentSessionId]) {
                 sessions[currentSessionId].events = events;
                 saveSessions();
+                console.log('Session saved with rep image');
             }
 
             cancelRepImageMode();
+            console.log('Calling updateUI...');
             updateUI();
         }
 
