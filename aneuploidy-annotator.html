@@ -1318,6 +1318,17 @@
 
                 <button class="type-btn" onclick="startRepImageMode()" style="width: 100%; margin-top: 12px; margin-bottom: 12px; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Representative Image</button>
 
+                <!-- Rep Images Section -->
+                <div class="rep-images-section">
+                    <div class="annotation-title" style="margin-top: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRepImagesSection()">
+                        <span>Rep Images <span id="repImageCount" style="font-weight: 400; color: #71717A;">(0)</span></span>
+                        <span id="repImagesToggle" style="font-size: 14px; transition: transform 0.2s;">▼</span>
+                    </div>
+                    <div class="event-list" id="repImagesList" style="display: none;">
+                        <!-- Rep image event cards will be populated here -->
+                    </div>
+                </div>
+
                 <div class="annotation-title" style="margin-top: 12px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
                 <div class="event-list" id="eventList">
                     <!-- Events will be populated here -->
@@ -1765,6 +1776,7 @@
             totalFrames = session.totalFrames || 180;
             videoFPS = session.videoFPS || 30;
             selectedRepImageId = null;
+            repImagesExpanded = false;
 
             // Try to load file from IndexedDB
             if (session.videoPath) {
@@ -2572,23 +2584,23 @@
         }
 
         function saveRepImage(repImageId, x, y, width, height, canvas) {
-            // Find the rep image and save it
-            const repImage = repImages.find(r => r.id === repImageId);
-            if (!repImage) return;
+            // Find the rep image event and save it
+            const event = events.find(e => e.id === repImageId && e.type === 'Rectangle');
+            if (!event) return;
 
             // Update position and size
-            repImage.x = Math.round(x);
-            repImage.y = Math.round(y);
-            repImage.width = Math.round(width);
-            repImage.height = Math.round(height);
+            event.x = Math.round(x);
+            event.y = Math.round(y);
+            event.width = Math.round(width);
+            event.height = Math.round(height);
 
             // Capture the image data from canvas
             const ctx = canvas.getContext('2d');
-            repImage.imageData = canvas.toDataURL('image/png');
+            event.imageData = canvas.toDataURL('image/png');
 
             // Save to session
             if (currentSessionId && sessions[currentSessionId]) {
-                sessions[currentSessionId].repImages = repImages;
+                sessions[currentSessionId].events = events;
                 saveSessions();
             }
 
@@ -2599,8 +2611,50 @@
         }
 
         function renderRepImages() {
-            // Rep images are now rendered as events in the event list
-            // This function is kept for compatibility with window.renderRepImages
+            const repImagesList = document.getElementById('repImagesList');
+            repImagesList.innerHTML = '';
+
+            // Get all Rectangle events (rep images)
+            const repImageEvents = events.filter(e => e.type === 'Rectangle');
+
+            // Update count
+            document.getElementById('repImageCount').textContent = `(${repImageEvents.length})`;
+
+            // Render each rep image as an event card
+            repImageEvents.forEach(event => {
+                const eventCard = document.createElement('div');
+                eventCard.className = `event-card ${event.id === currentEventId ? 'current' : ''}`;
+
+                // Rep images use gray background
+                eventCard.style.backgroundColor = '#FAFAFA';
+
+                const notesHTML = event.notes ? `<div class="event-notes">${event.notes}</div>` : '';
+
+                eventCard.innerHTML = `
+                    <div class="event-camera-icon">📷</div>
+                    <input type="checkbox" class="event-export-check" ${event.exportFrame ? 'checked' : ''}
+                        onclick="event.stopPropagation(); toggleEventExport('${event.id}', this.checked)" title="Export frame image">
+                    <div class="event-header">
+                        <span class="event-time">Frame ${event.frame}</span>
+                        <button class="event-edit-btn" onclick="event.stopPropagation(); startEditRepImage('${event.id}')">✎</button>
+                        <div class="event-delete" onclick="event.stopPropagation(); deleteRepImage('${event.id}')">×</div>
+                    </div>
+                    <div class="event-type">Rep Image</div>
+                    ${notesHTML}
+                `;
+
+                eventCard.onclick = (e) => {
+                    if (!e.target.classList.contains('event-delete') &&
+                        !e.target.classList.contains('event-edit-btn') &&
+                        e.target.type !== 'checkbox') {
+                        currentFrame = event.frame;
+                        currentEventId = event.id;
+                        updateUI();
+                    }
+                };
+
+                repImagesList.appendChild(eventCard);
+            });
         }
 
         function deleteRepImage(repImageId) {
@@ -3306,8 +3360,9 @@
             }
             drawCurrentFrameMarkers();
 
-            // Render events
+            // Render events (both regular events and rep images)
             renderEvents();
+            renderRepImages();
             renderEventMarkers();
             renderTimelineRuler();
 
@@ -3320,9 +3375,12 @@
             const eventList = document.getElementById('eventList');
             eventList.innerHTML = '';
 
-            // Group events by frame
+            // Group non-Rectangle events by frame (Rectangle events go in Rep Images section)
             const eventsByFrame = {};
             events.forEach(event => {
+                // Skip Rectangle events - they're rendered in the Rep Images section
+                if (event.type === 'Rectangle') return;
+
                 if (!eventsByFrame[event.frame]) {
                     eventsByFrame[event.frame] = [];
                 }
@@ -3332,9 +3390,10 @@
             // Sort frames descending (earliest at bottom)
             const sortedFrames = Object.keys(eventsByFrame).sort((a, b) => b - a);
 
-            // Update event count label - labeled events / total events
-            const labeledCount = events.filter(e => e.type && e.type !== '' && e.type !== '(No type)').length;
-            const totalCount = events.length;
+            // Update event count label - labeled events / total events (excluding Rectangle rep images)
+            const nonRepImages = events.filter(e => e.type !== 'Rectangle');
+            const labeledCount = nonRepImages.filter(e => e.type && e.type !== '' && e.type !== '(No type)').length;
+            const totalCount = nonRepImages.length;
             document.getElementById('eventCount').textContent = `(${labeledCount}/${totalCount})`;
 
             sortedFrames.forEach(frame => {
