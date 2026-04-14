@@ -2633,6 +2633,11 @@
             // Get all Rectangle events (rep images)
             const repImageEvents = events.filter(e => e.type === 'Rectangle');
 
+            console.log('renderRepImages - Total events:', events.length);
+            console.log('renderRepImages - Rectangle events found:', repImageEvents.length);
+            console.log('renderRepImages - All events types:', events.map(e => e.type));
+            console.log('renderRepImages - Rep image events:', repImageEvents);
+
             // Update count
             document.getElementById('repImageCount').textContent = `(${repImageEvents.length})`;
 
@@ -2645,8 +2650,11 @@
                 if (repImagesToggle) repImagesToggle.style.transform = 'rotate(0deg)';
             }
 
+            // Sort by frame (descending, newest first)
+            const sortedRepImages = repImageEvents.sort((a, b) => b.frame - a.frame);
+
             // Render each rep image as an event card
-            repImageEvents.forEach(event => {
+            sortedRepImages.forEach(event => {
                 const eventCard = document.createElement('div');
                 eventCard.className = `event-card ${event.id === currentEventId ? 'current' : ''}`;
 
@@ -3915,6 +3923,9 @@
 
                 events.push(newEvent);
                 currentEventId = repImageId;
+                console.log('Rep image event created and added. Events array now has', events.length, 'items');
+                console.log('New event:', newEvent);
+                console.log('Event type is:', newEvent.type);
             }
 
             // Save to session
