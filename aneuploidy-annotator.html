@@ -1544,7 +1544,9 @@
         let repImagesExpanded = false;  // Whether rep images section is expanded
         let currentRepImageEditId = null; // Rep image being edited
         let repImageDragging = false; // currently dragging the rectangle
-        let repImageDragOffset = null; // offset from rectangle center when dragging
+        let repImageDragOffset = null; // offset from rectangle corner when dragging
+        let repImageResizing = false; // currently resizing the rectangle
+        let repImageResizeStart = null; // starting corner position for resize
 
         // ImageJ hyperstack dimensions
         let ijChannels = 1;
@@ -2941,12 +2943,24 @@
 
                 const coords = canvasClickToImageCoords(e);
 
-                // Check if clicking inside existing rectangle (for dragging)
+                // Check if clicking inside existing rectangle (for dragging or resizing)
                 if (repImageStart && repImageEnd) {
                     const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
                     const rectRight = Math.max(repImageStart.x, repImageEnd.x);
                     const rectTop = Math.min(repImageStart.y, repImageEnd.y);
                     const rectBottom = Math.max(repImageStart.y, repImageEnd.y);
+                    const cornerSize = 12; // Size of the resize corner handle
+
+                    // Check if clicking on bottom-right corner (for resizing)
+                    const isOnCorner = coords.x >= (rectRight - cornerSize) && coords.x <= rectRight &&
+                                      coords.y >= (rectBottom - cornerSize) && coords.y <= rectBottom;
+
+                    if (isOnCorner) {
+                        // Start resizing from bottom-right corner
+                        repImageResizing = true;
+                        repImageResizeStart = { x: rectRight, y: rectBottom };
+                        return;
+                    }
 
                     const isInside = coords.x >= rectLeft && coords.x <= rectRight &&
                                     coords.y >= rectTop && coords.y <= rectBottom;
@@ -2993,6 +3007,26 @@
                         y: repImageStart.y + (dy > 0 ? size : -size)
                     };
                     canvasElement.style.cursor = 'crosshair';
+                } else if (repImageResizing && repImageStart && repImageEnd && repImageResizeStart) {
+                    // Resizing mode - resize from bottom-right corner
+                    const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
+                    const rectTop = Math.min(repImageStart.y, repImageEnd.y);
+
+                    // Calculate new size maintaining square aspect ratio
+                    const dx = coords.x - repImageResizeStart.x;
+                    const dy = coords.y - repImageResizeStart.y;
+                    const sizeDelta = Math.max(dx, dy); // Use the larger delta to keep square
+
+                    // Update the end point (bottom-right corner)
+                    const newRight = repImageResizeStart.x + sizeDelta;
+                    const newBottom = repImageResizeStart.y + sizeDelta;
+
+                    repImageEnd = {
+                        x: newRight,
+                        y: newBottom
+                    };
+
+                    canvasElement.style.cursor = 'nwse-resize';
                 } else if (repImageDragging && repImageStart && repImageEnd) {
                     // Dragging mode - reposition the square
                     const size = Math.abs(repImageEnd.x - repImageStart.x);
@@ -3008,16 +3042,26 @@
                     };
                     canvasElement.style.cursor = 'grabbing';
                 } else if (repImageStart && repImageEnd && !repImageDrawing) {
-                    // Hover over rectangle - show grab cursor
+                    // Hover over rectangle - show appropriate cursor
                     const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
                     const rectRight = Math.max(repImageStart.x, repImageEnd.x);
                     const rectTop = Math.min(repImageStart.y, repImageEnd.y);
                     const rectBottom = Math.max(repImageStart.y, repImageEnd.y);
+                    const cornerSize = 12;
+
+                    const isOnCorner = coords.x >= (rectRight - cornerSize) && coords.x <= rectRight &&
+                                      coords.y >= (rectBottom - cornerSize) && coords.y <= rectBottom;
 
                     const isInside = coords.x >= rectLeft && coords.x <= rectRight &&
                                     coords.y >= rectTop && coords.y <= rectBottom;
 
-                    canvasElement.style.cursor = isInside ? 'grab' : 'default';
+                    if (isOnCorner) {
+                        canvasElement.style.cursor = 'nwse-resize'; // Diagonal resize cursor
+                    } else if (isInside) {
+                        canvasElement.style.cursor = 'grab';
+                    } else {
+                        canvasElement.style.cursor = 'default';
+                    }
                 }
 
                 // Clear marker canvas and draw rectangle
@@ -3032,6 +3076,14 @@
                 if (repImageDrawing && repImageStart && repImageEnd) {
                     repImageDrawing = false;
                     // Don't cancel mode - allow dragging to reposition
+                    canvasElement.style.cursor = 'grab';
+                    return;
+                }
+
+                // Stop resizing
+                if (repImageResizing) {
+                    repImageResizing = false;
+                    repImageResizeStart = null;
                     canvasElement.style.cursor = 'grab';
                     return;
                 }
@@ -3865,6 +3917,20 @@
             markerContext.setLineDash([5, 5]);
             markerContext.strokeRect(x1, y1, width, height);
             markerContext.setLineDash([]);
+
+            // Draw resize handle at bottom-right corner if rectangle has been drawn
+            if (!repImageDrawing && width > 0 && height > 0) {
+                const cornerSize = 12;
+
+                // Draw resize handle (small square in bottom-right corner)
+                markerContext.fillStyle = '#FF6B6B';
+                markerContext.fillRect(x2 - cornerSize, y2 - cornerSize, cornerSize, cornerSize);
+
+                // Draw border on resize handle
+                markerContext.strokeStyle = '#000000';
+                markerContext.lineWidth = 1;
+                markerContext.strokeRect(x2 - cornerSize, y2 - cornerSize, cornerSize, cornerSize);
+            }
 
             // Draw checkmark button to the right of the rectangle if rectangle has been drawn
             if (!repImageDrawing && width > 0 && height > 0) {
