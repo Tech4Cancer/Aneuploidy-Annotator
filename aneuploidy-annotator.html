@@ -2614,6 +2614,7 @@
 
         function renderRepImages() {
             const repImagesList = document.getElementById('repImagesList');
+            const repImagesToggle = document.getElementById('repImagesToggle');
             repImagesList.innerHTML = '';
 
             // Get all Rectangle events (rep images)
@@ -2621,6 +2622,15 @@
 
             // Update count
             document.getElementById('repImageCount').textContent = `(${repImageEvents.length})`;
+
+            // Update list visibility based on repImagesExpanded state
+            if (repImagesExpanded) {
+                repImagesList.style.display = 'flex';
+                if (repImagesToggle) repImagesToggle.style.transform = 'rotate(180deg)';
+            } else {
+                repImagesList.style.display = 'none';
+                if (repImagesToggle) repImagesToggle.style.transform = 'rotate(0deg)';
+            }
 
             // Render each rep image as an event card
             repImageEvents.forEach(event => {
@@ -3892,6 +3902,9 @@
 
                 events.push(newEvent);
                 currentEventId = repImageId;
+
+                // Auto-expand rep images section when a new rep image is created
+                repImagesExpanded = true;
             }
 
             // Save to session
