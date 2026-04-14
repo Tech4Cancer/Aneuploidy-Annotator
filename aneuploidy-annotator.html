@@ -4343,6 +4343,7 @@
         window.saveRepImage = saveRepImage;
         window.addRepImageEvent = addRepImageEvent;
         window.toggleRepImagesSection = toggleRepImagesSection;
+        window.approveRepImageFromButton = approveRepImageFromButton;
         window.getRepImagesState = () => ({
             repImages: repImages,
             repImageStart: repImageStart,
@@ -4354,6 +4355,12 @@
             selectedRepImageId: selectedRepImageId,
             repImagesExpanded: repImagesExpanded,
             currentRepImageEditId: currentRepImageEditId
+        });
+        // Expose zoom/pan state for testing
+        window.getZoomPanState = () => ({
+            zoomScale: zoomScale,
+            panX: panX,
+            panY: panY
         });
 
         // Initialize app
