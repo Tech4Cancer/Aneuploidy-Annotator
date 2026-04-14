@@ -12,6 +12,7 @@ const TEST_FILES = [
   'test-event-markers.js',
   'test-markers-visual.js',
   'test-marker-alignment.js',
+  'test-marker-zoom-pan.js',
   'test-zoom.js',
   'test-slider-shortcuts.js',
   'test-navigation.js',

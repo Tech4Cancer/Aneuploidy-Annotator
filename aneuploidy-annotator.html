@@ -33,7 +33,6 @@
             display: flex;
             flex-direction: column;
             gap: 24px;
-            overflow-y: auto;
         }
 
         .logo {
@@ -285,11 +284,10 @@
             gap: 8px;
             overflow-y: auto;
             max-height: 420px;
-            padding-right: 2px;
             background: #FFFFFF;
             border: 1px solid #E4E4E7;
             border-radius: 8px;
-            padding: 8px;
+            padding: 4px 2px;
         }
 
         .event-card {
@@ -401,6 +399,15 @@
             font-size: 12px;
             font-weight: 400;
             color: #A1A1AA;
+        }
+
+        .rep-image-thumbnail {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #E4E4E7;
+            cursor: pointer;
         }
 
         .event-coords {
@@ -1296,11 +1303,13 @@
                 </div>
 
                 <div class="import-section">
-                    <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
-                    <button class="import-csv-btn" onclick="document.getElementById('csvImport').click()">Import CSV</button>
-                    <input type="file" id="trackastraImport" accept=".csv" style="display: none;" onchange="handleTrackastraImport(event)">
-                    <button class="import-csv-btn" onclick="document.getElementById('trackastraImport').click()">Import Trackastra CSV</button>
-                    <button class="import-csv-btn" onclick="exportAll()" style="background: #059669; color: #FFFFFF; margin-top: 8px;">Export</button>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+                        <button class="import-csv-btn" onclick="document.getElementById('csvImport').click()" style="flex: 1;">Import CSV</button>
+                        <input type="file" id="trackastraImport" accept=".csv" style="display: none;" onchange="handleTrackastraImport(event)">
+                        <button class="import-csv-btn" onclick="document.getElementById('trackastraImport').click()" style="flex: 1;">Import ML CSV</button>
+                    </div>
+                    <button class="import-csv-btn" onclick="exportAll()" style="background: #059669; color: #FFFFFF;">Export</button>
                 </div>
             </div>
 
@@ -1318,6 +1327,7 @@
 
                 <div style="display: flex; gap: 8px; margin-top: 12px; margin-bottom: 12px;">
                     <button class="type-btn" onclick="startRepImageMode()" style="flex: 1; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Add Rep. Image</button>
+                    <button class="type-btn" id="approveRepImageBtn" onclick="approveRepImageFromButton()" style="display: none; width: 40px; background-color: #D1FAE5; border-left: 4px solid #10B981; height: auto; padding: 8px 10px; font-weight: 700;">✓</button>
                     <button class="type-btn" id="cancelRepImageBtn" onclick="cancelRepImageMode()" style="display: none; width: 40px; background-color: #FEE2E2; border-left: 4px solid #EF4444; height: auto; padding: 8px 10px; font-weight: 700;">✕</button>
                 </div>
 
@@ -2572,6 +2582,31 @@
             isRepImageMode = true;
             canvasElement.style.cursor = 'crosshair';
             document.getElementById('cancelRepImageBtn').style.display = 'block';
+            document.getElementById('approveRepImageBtn').style.display = 'block';
+        }
+
+        function approveRepImageFromButton() {
+            // Finalize the rep image if a rectangle has been drawn
+            if (repImageStart && repImageEnd && !repImageDrawing && !repImageDragging) {
+                const x1 = Math.min(repImageStart.x, repImageEnd.x);
+                const y1 = Math.min(repImageStart.y, repImageEnd.y);
+                const x2 = Math.max(repImageStart.x, repImageEnd.x);
+                const y2 = Math.max(repImageStart.y, repImageEnd.y);
+                const width = x2 - x1;
+                const height = y2 - y1;
+
+                if (width > 5 && height > 5) {
+                    addRepImageEvent(x1, y1, width, height);
+                } else {
+                    alert('Rectangle must be at least 5x5 pixels');
+                }
+            } else if (!repImageStart) {
+                alert('Please draw a rectangle first');
+            } else if (repImageDrawing || repImageDragging) {
+                alert('Please finish drawing or dragging first');
+            } else {
+                alert('Something went wrong. Please try again.');
+            }
         }
 
         function cancelRepImageMode() {
@@ -2584,6 +2619,7 @@
             currentRepImageEditId = null;
             canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
             document.getElementById('cancelRepImageBtn').style.display = 'none';
+            document.getElementById('approveRepImageBtn').style.display = 'none';
 
             // Clear marker canvas
             if (markerContext) {
@@ -2663,22 +2699,25 @@
 
                 const notesHTML = event.notes ? `<div class="event-notes">${event.notes}</div>` : '';
 
+                // Create thumbnail if image data exists
+                let thumbnailHTML = '';
+                if (event.imageData) {
+                    thumbnailHTML = `<img class="rep-image-thumbnail" src="${event.imageData}" title="Rep image preview">`;
+                }
+
                 eventCard.innerHTML = `
-                    <div class="event-camera-icon">📷</div>
-                    <input type="checkbox" class="event-export-check" ${event.exportFrame ? 'checked' : ''}
-                        onclick="event.stopPropagation(); toggleEventExport('${event.id}', this.checked)" title="Export frame image">
                     <div class="event-header">
                         <span class="event-time">Frame ${event.frame}</span>
-                        <button class="event-edit-btn" onclick="event.stopPropagation(); startEditRepImage('${event.id}')">✎</button>
                         <div class="event-delete" onclick="event.stopPropagation(); deleteRepImage('${event.id}')">×</div>
                     </div>
                     <div class="event-type">Rep Image</div>
+                    ${thumbnailHTML}
                     ${notesHTML}
                 `;
 
                 eventCard.onclick = (e) => {
                     if (!e.target.classList.contains('event-delete') &&
-                        !e.target.classList.contains('event-edit-btn') &&
+                        !e.target.classList.contains('rep-image-thumbnail') &&
                         e.target.type !== 'checkbox') {
                         currentFrame = event.frame;
                         currentEventId = event.id;
@@ -3145,43 +3184,6 @@
 
             canvasElement.addEventListener('click', (e) => {
                 if (!hasVideo) return;
-
-                // Check if clicking on the rep image approve button
-                if (isRepImageMode && repImageStart && repImageEnd && !repImageDrawing) {
-                    const rect = canvasElement.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const clickY = e.clientY - rect.top;
-
-                    // Scale click coordinates to canvas image coordinates
-                    const scaleX = canvasElement.width / rect.width;
-                    const scaleY = canvasElement.height / rect.height;
-                    const imageClickX = clickX * scaleX;
-                    const imageClickY = clickY * scaleY;
-
-                    // Recalculate button bounds if not cached
-                    const x1 = Math.min(repImageStart.x, repImageEnd.x);
-                    const y1 = Math.min(repImageStart.y, repImageEnd.y);
-                    const x2 = Math.max(repImageStart.x, repImageEnd.x);
-                    const y2 = Math.max(repImageStart.y, repImageEnd.y);
-                    const width = x2 - x1;
-                    const height = y2 - y1;
-
-                    // Calculate button position (to the right of the rectangle)
-                    const buttonSize = 24;
-                    const padding = 8;
-                    const buttonX = x2 + padding;
-                    const buttonY = y1;
-
-                    // Check if click is on the approve button
-                    if (imageClickX >= buttonX && imageClickX <= buttonX + buttonSize &&
-                        imageClickY >= buttonY && imageClickY <= buttonY + buttonSize) {
-                        // Approve button clicked - finalize rep image
-                        if (width > 5 && height > 5) {
-                            addRepImageEvent(x1, y1, width, height);
-                        }
-                        return;
-                    }
-                }
 
                 if (isRepImageMode) return; // Don't process if in Rep. Image mode
 
@@ -3883,6 +3885,7 @@
         }
 
         function addRepImageEvent(x, y, width, height) {
+            console.log('CALLED: addRepImageEvent', x, y, width, height);
             if (currentRepImageEditId) {
                 // Updating an existing rep image
                 const event = events.find(e => e.id === currentRepImageEditId);
@@ -3905,7 +3908,7 @@
                     width: width,
                     height: height,
                     imageData: null,
-                    exportFrame: false,
+                    exportFrame: true,
                     notes: ''
                 };
 
@@ -3969,34 +3972,6 @@
                 markerContext.strokeRect(x2 - cornerSize, y2 - cornerSize, cornerSize, cornerSize);
             }
 
-            // Draw checkmark button to the right of the rectangle if rectangle has been drawn
-            if (!repImageDrawing && width > 0 && height > 0) {
-                const buttonSize = 24;
-                const padding = 8;
-                const buttonX = x2 + padding;
-                const buttonY = y1; // Align with top of rectangle
-
-                // Draw button background
-                markerContext.fillStyle = '#10B981';
-                markerContext.fillRect(buttonX, buttonY, buttonSize, buttonSize);
-
-                // Draw checkmark
-                markerContext.strokeStyle = '#FFFFFF';
-                markerContext.lineWidth = 2;
-                markerContext.beginPath();
-                markerContext.moveTo(buttonX + 6, buttonY + 12);
-                markerContext.lineTo(buttonX + 10, buttonY + 16);
-                markerContext.lineTo(buttonX + 18, buttonY + 8);
-                markerContext.stroke();
-
-                // Store button bounds for click detection
-                window.repImageApproveBtn = {
-                    x: buttonX,
-                    y: buttonY,
-                    width: buttonSize,
-                    height: buttonSize
-                };
-            }
         }
 
         document.querySelectorAll('.type-btn').forEach(btn => {
@@ -4167,14 +4142,18 @@
             const zip = new JSZip();
             const folder = zip.folder(folderName);
 
-            // CSV
+            // Separate rep images from regular events
+            const regularEvents = sortedEvents.filter(ev => ev.type !== 'Rectangle');
+            const repImages = sortedEvents.filter(ev => ev.type === 'Rectangle');
+
+            // CSV (only regular events, not rep images)
             let csv = 'Frame,Event Type,X,Y,Notes,ExportFrame\n';
-            sortedEvents.forEach(ev => {
+            regularEvents.forEach(ev => {
                 const x = ev.x !== undefined ? ev.x : '';
                 const y = ev.y !== undefined ? ev.y : '';
                 csv += `${ev.frame},"${ev.type}",${x},${y},"${ev.notes || ''}",${ev.exportFrame ? 'yes' : 'no'}\n`;
             });
-            folder.file(`${sanitizedName}.csv`, csv);
+            folder.file(`${folderName}.csv`, csv);
 
             // Metadata
             const videoSizeMB = session.videoSize ? (session.videoSize / (1024 * 1024)).toFixed(2) : 'Unknown';
@@ -4183,36 +4162,63 @@
             metadata += `Video Name: ${session.videoName || 'No video'}\nVideo Size: ${videoSizeMB} MB\n`;
             metadata += `Total Frames: ${session.totalFrames}\nFrame Rate: ${session.videoFPS} FPS\n`;
             metadata += `\n=== Annotation Statistics ===\n`;
-            metadata += `Total Annotations: ${events.length}\nFrames Annotated: ${new Set(events.map(e => e.frame)).size}\n`;
+            metadata += `Total Events: ${regularEvents.length}\nRepresentative Images: ${repImages.length}\nFrames Annotated: ${new Set(regularEvents.map(e => e.frame)).size}\n`;
             const typeCounts = {};
-            events.forEach(ev => { typeCounts[ev.type] = (typeCounts[ev.type] || 0) + 1; });
+            regularEvents.forEach(ev => { typeCounts[ev.type] = (typeCounts[ev.type] || 0) + 1; });
             metadata += `\n=== Events by Type ===\n`;
             Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
                 metadata += `${type}: ${count}\n`;
             });
-            folder.file(`${sanitizedName}_meta.txt`, metadata);
+            folder.file(`${folderName}_meta.txt`, metadata);
 
-            // Frame images for checked events
+            // Frame images for checked events (regular events and rep images)
             const checkedEvents = sortedEvents.filter(ev => ev.exportFrame);
             if (checkedEvents.length > 0) {
-                const imagesFolder = folder.folder('frames');
-                for (const ev of checkedEvents) {
-                    try {
-                        let blob = null;
-                        // For Rectangle events, pass the crop region
-                        const rect = ev.type === 'Rectangle' ? { x: ev.x, y: ev.y, width: ev.width, height: ev.height } : null;
-                        if (isTiffFile) {
-                            blob = await captureFrameImage(ev.frame, currentZ, currentC, rect);
-                        } else {
-                            blob = await captureVideoFrameImage(ev.frame, rect);
+                // Separate regular events and rep images
+                const checkedRegularEvents = checkedEvents.filter(ev => ev.type !== 'Rectangle');
+                const checkedRepImages = checkedEvents.filter(ev => ev.type === 'Rectangle');
+
+                // Export regular event frames
+                if (checkedRegularEvents.length > 0) {
+                    const framesFolder = folder.folder('frames');
+                    for (const ev of checkedRegularEvents) {
+                        try {
+                            let blob = null;
+                            if (isTiffFile) {
+                                blob = await captureFrameImage(ev.frame, currentZ, currentC);
+                            } else {
+                                blob = await captureVideoFrameImage(ev.frame);
+                            }
+                            if (blob) {
+                                const sanitizedType = (ev.type || 'unknown').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                                const imgName = `${sanitizedName}_frame${ev.frame}_${sanitizedType}.png`;
+                                framesFolder.file(imgName, blob);
+                            }
+                        } catch (err) {
+                            console.error('Error capturing frame', ev.frame, err);
                         }
-                        if (blob) {
-                            const sanitizedType = (ev.type || 'unknown').replace(/[^a-z0-9]/gi, '-').toLowerCase();
-                            const imgName = `${sanitizedName}_frame${ev.frame}_${sanitizedType}.png`;
-                            imagesFolder.file(imgName, blob);
+                    }
+                }
+
+                // Export rep images
+                if (checkedRepImages.length > 0) {
+                    const repImagesFolder = folder.folder('representative_images');
+                    for (const ev of checkedRepImages) {
+                        try {
+                            let blob = null;
+                            const rect = { x: ev.x, y: ev.y, width: ev.width, height: ev.height };
+                            if (isTiffFile) {
+                                blob = await captureFrameImage(ev.frame, currentZ, currentC, rect);
+                            } else {
+                                blob = await captureVideoFrameImage(ev.frame, rect);
+                            }
+                            if (blob) {
+                                const imgName = `${sanitizedName}_frame${ev.frame}_repimage.png`;
+                                repImagesFolder.file(imgName, blob);
+                            }
+                        } catch (err) {
+                            console.error('Error capturing rep image frame', ev.frame, err);
                         }
-                    } catch (err) {
-                        console.error('Error capturing frame', ev.frame, err);
                     }
                 }
             }
