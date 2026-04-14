@@ -747,6 +747,33 @@
             width: 80px;
             accent-color: #000;
             cursor: pointer;
+            background: linear-gradient(to right, #E4E4E7 0%, #E4E4E7 calc(33.33% - 1px), #000 calc(33.33%), #000 calc(33.33% + 1px), #E4E4E7 calc(33.33% + 2px), #E4E4E7 100%);
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .brightness-slider::-webkit-slider-thumb {
+            -webkit-appearance: slider-thumb;
+            appearance: slider-thumb;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #000;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .brightness-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #000;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .brightness-reset {
