@@ -3529,18 +3529,13 @@
             markersContainer.innerHTML = '';
 
             // Get measurements for slider positioning
-            const sliderRect = sliderElement.getBoundingClientRect();
-            const sliderParent = sliderElement.parentElement;
-            const parentRect = sliderParent.getBoundingClientRect();
+            // Use offsetWidth for more accurate track width (includes padding, excludes margin)
+            const sliderWidth = sliderElement.offsetWidth;
 
             // Set markers container to span exactly the slider width using pixels
-            // This is more reliable than percentages since the parent is a flex container
-            // Account for slider's internal padding by using the track bounds
-            const sliderComputedStyle = window.getComputedStyle(sliderElement);
-            const sliderPadding = parseFloat(sliderComputedStyle.paddingLeft) || 0;
-
+            // This ensures markers align with the slider track
             markersContainer.style.left = '0px';
-            markersContainer.style.width = sliderRect.width + 'px';
+            markersContainer.style.width = sliderWidth + 'px';
             markersContainer.style.right = 'auto'; // Clear the right: 0 from inline CSS
 
             // Create a marker for each event, positioned based on frame
