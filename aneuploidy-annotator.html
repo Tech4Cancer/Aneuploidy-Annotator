@@ -2909,9 +2909,34 @@
         function setupVideoClickHandler() {
             canvasElement.addEventListener('mousedown', (e) => {
                 if (!hasVideo || !isRepImageMode) return;
+
+                const coords = canvasClickToImageCoords(e);
+
+                // Check if clicking inside existing rectangle (for dragging)
+                if (repImageStart && repImageEnd) {
+                    const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
+                    const rectRight = Math.max(repImageStart.x, repImageEnd.x);
+                    const rectTop = Math.min(repImageStart.y, repImageEnd.y);
+                    const rectBottom = Math.max(repImageStart.y, repImageEnd.y);
+
+                    const isInside = coords.x >= rectLeft && coords.x <= rectRight &&
+                                    coords.y >= rectTop && coords.y <= rectBottom;
+
+                    if (isInside) {
+                        // Start dragging the existing rectangle
+                        repImageDragging = true;
+                        repImageDragOffset = {
+                            x: coords.x - rectLeft,
+                            y: coords.y - rectTop
+                        };
+                        return;
+                    }
+                }
+
+                // Start drawing a new rectangle
                 repImageDrawing = true;
-                repImageStart = canvasClickToImageCoords(e);
-                repImageEnd = repImageStart;
+                repImageStart = coords;
+                repImageEnd = coords;
             });
 
             canvasElement.addEventListener('mousemove', (e) => {
@@ -2939,40 +2964,31 @@
                         y: repImageStart.y + (dy > 0 ? size : -size)
                     };
                     canvasElement.style.cursor = 'crosshair';
-                } else if (repImageStart && repImageEnd && !repImageDrawing) {
+                } else if (repImageDragging && repImageStart && repImageEnd) {
                     // Dragging mode - reposition the square
-                    if (e.buttons === 1) {
-                        // Mouse button is down - drag the rectangle
-                        if (!repImageDragging) {
-                            repImageDragging = true;
-                            // Store the offset from current position
-                            const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
-                            const rectTop = Math.min(repImageStart.y, repImageEnd.y);
-                            repImageDragOffset = {
-                                x: coords.x - rectLeft,
-                                y: coords.y - rectTop
-                            };
-                        }
+                    const size = Math.abs(repImageEnd.x - repImageStart.x);
+                    const newLeft = coords.x - repImageDragOffset.x;
+                    const newTop = coords.y - repImageDragOffset.y;
+                    repImageStart = {
+                        x: newLeft,
+                        y: newTop
+                    };
+                    repImageEnd = {
+                        x: newLeft + size,
+                        y: newTop + size
+                    };
+                    canvasElement.style.cursor = 'grabbing';
+                } else if (repImageStart && repImageEnd && !repImageDrawing) {
+                    // Hover over rectangle - show grab cursor
+                    const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
+                    const rectRight = Math.max(repImageStart.x, repImageEnd.x);
+                    const rectTop = Math.min(repImageStart.y, repImageEnd.y);
+                    const rectBottom = Math.max(repImageStart.y, repImageEnd.y);
 
-                        // Move rectangle by dragging
-                        const size = Math.abs(repImageEnd.x - repImageStart.x);
-                        const newLeft = coords.x - repImageDragOffset.x;
-                        const newTop = coords.y - repImageDragOffset.y;
-                        repImageStart = {
-                            x: newLeft,
-                            y: newTop
-                        };
-                        repImageEnd = {
-                            x: newLeft + size,
-                            y: newTop + size
-                        };
-                        canvasElement.style.cursor = 'grabbing';
-                    } else {
-                        // Mouse button not down
-                        repImageDragging = false;
-                        repImageDragOffset = null;
-                        canvasElement.style.cursor = 'grab';
-                    }
+                    const isInside = coords.x >= rectLeft && coords.x <= rectRight &&
+                                    coords.y >= rectTop && coords.y <= rectBottom;
+
+                    canvasElement.style.cursor = isInside ? 'grab' : 'default';
                 }
 
                 // Clear marker canvas and draw rectangle
@@ -2986,8 +3002,6 @@
                 // If just finished drawing
                 if (repImageDrawing && repImageStart && repImageEnd) {
                     repImageDrawing = false;
-                    repImageDragging = false;
-                    repImageDragOffset = null;
                     // Don't cancel mode - allow dragging to reposition
                     canvasElement.style.cursor = 'grab';
                     return;
@@ -3405,6 +3419,10 @@
 
             // Set markers container to span exactly the slider width using pixels
             // This is more reliable than percentages since the parent is a flex container
+            // Account for slider's internal padding by using the track bounds
+            const sliderComputedStyle = window.getComputedStyle(sliderElement);
+            const sliderPadding = parseFloat(sliderComputedStyle.paddingLeft) || 0;
+
             markersContainer.style.left = '0px';
             markersContainer.style.width = sliderRect.width + 'px';
             markersContainer.style.right = 'auto'; // Clear the right: 0 from inline CSS
@@ -3417,13 +3435,25 @@
 
                 marker.className = `event-marker ${isCurrentEvent ? 'current' : ''}`;
 
-                // Position marker based on frame percentage within slider
-                // Use the same calculation as the slider: (value - min) / (max - min)
-                const sliderElement = document.getElementById('tFrameSlider');
+                // Position marker to match slider thumb position
+                // Get slider positioning details
                 const min = parseInt(sliderElement.min) || 1;
                 const max = parseInt(sliderElement.max) || totalFrames;
-                const framePercent = ((event.frame - min) / (max - min)) * 100;
-                marker.style.left = `calc(${framePercent}% - 3px)`; // -3px to center 6px dot
+                const range = max - min;
+
+                // Calculate percentage position
+                let framePercent = 0;
+                if (range > 0) {
+                    framePercent = ((event.frame - min) / range) * 100;
+                }
+
+                // The marker needs to be centered on the slider thumb
+                // Slider track width relative to container width
+                const sliderComputedStyle = window.getComputedStyle(sliderElement);
+                const sliderTrackPercent = framePercent;
+
+                // Position marker at exact slider thumb position, centered
+                marker.style.left = `calc(${sliderTrackPercent}% - 3px)`;
 
                 // Color based on event type
                 const color = getEventColor(event.type);
