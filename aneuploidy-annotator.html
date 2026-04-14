@@ -1316,7 +1316,10 @@
                     <button class="type-btn" data-type="Mitotic failure" data-key="7" style="background-color: #F3E8FF; border-left: 4px solid #A855F7;">7. Failure</button>
                 </div>
 
-                <button class="type-btn" onclick="startRepImageMode()" style="width: 100%; margin-top: 12px; margin-bottom: 12px; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Representative Image</button>
+                <div style="display: flex; gap: 8px; margin-top: 12px; margin-bottom: 12px;">
+                    <button class="type-btn" onclick="startRepImageMode()" style="flex: 1; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Representative Image</button>
+                    <button class="type-btn" id="cancelRepImageBtn" onclick="cancelRepImageMode()" style="display: none; width: 40px; background-color: #FEE2E2; border-left: 4px solid #EF4444; height: auto; padding: 8px 10px; font-weight: 700;">✕</button>
+                </div>
 
                 <!-- Rep Images Section -->
                 <div class="rep-images-section">
@@ -2568,6 +2571,7 @@
             }
             isRepImageMode = true;
             canvasElement.style.cursor = 'crosshair';
+            document.getElementById('cancelRepImageBtn').style.display = 'block';
         }
 
         function cancelRepImageMode() {
@@ -2575,8 +2579,17 @@
             repImageDrawing = false;
             repImageStart = null;
             repImageEnd = null;
+            repImageResizing = false;
+            repImageResizeStart = null;
             currentRepImageEditId = null;
             canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
+            document.getElementById('cancelRepImageBtn').style.display = 'none';
+
+            // Clear marker canvas
+            if (markerContext) {
+                markerContext.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+            }
+
             if (isTiffFile) {
                 renderTiffFrame();
             } else {
