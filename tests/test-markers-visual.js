@@ -93,17 +93,17 @@ module.exports = {
           tFrameRowExists: !!tFrameRow,
           eventMarkersExists: !!eventMarkers,
           tSliderExists: !!tSlider,
-          eventMarkersParent: eventMarkers ? eventMarkers.parentElement.id : 'none',
+          eventMarkersInTRow: tFrameRow && tFrameRow.contains(eventMarkers),
           tFrameRowDisplay: tFrameRow ? window.getComputedStyle(tFrameRow).display : 'n/a',
           eventMarkersDisplay: eventMarkers ? window.getComputedStyle(eventMarkers).display : 'n/a'
         };
       });
 
-      const structureCorrect = result.eventMarkersParent === 'tFrameRow';
+      const structureCorrect = result.eventMarkersInTRow;
       tests.push({
         name: 'Event markers are children of T-frame row',
         pass: structureCorrect,
-        error: structureCorrect ? undefined : `Markers parent: ${result.eventMarkersParent}`
+        error: structureCorrect ? undefined : `Markers in TRow: ${result.eventMarkersInTRow}`
       });
     } catch (error) {
       tests.push({

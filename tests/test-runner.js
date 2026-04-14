@@ -19,6 +19,8 @@ const TEST_FILES = [
   'test-import.js',
   'test-visualization.js',
   'test-export.js',
+  'test-rep-images.js',
+  'test-rep-images-workflow.js',
 ];
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures');

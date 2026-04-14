@@ -15,8 +15,8 @@ module.exports = {
         const eventMarkersContainer = tFrameRow ? tFrameRow.querySelector('#eventMarkers') : null;
         const tSlider = document.querySelector('#tFrameSlider');
 
-        // Verify the DOM structure is correct
-        const containerInsideTRow = eventMarkersContainer && eventMarkersContainer.parentElement === tFrameRow;
+        // Verify the DOM structure is correct (markers may be in a wrapper div)
+        const containerInsideTRow = eventMarkersContainer && tFrameRow && tFrameRow.contains(eventMarkersContainer);
 
         // Check that tFrameRow has position: relative (needed for absolute positioning of markers)
         const tRowComputed = window.getComputedStyle(tFrameRow);

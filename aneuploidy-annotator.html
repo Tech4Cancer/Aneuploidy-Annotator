@@ -219,6 +219,66 @@
             opacity: 0.9;
         }
 
+        .rep-images-section {
+            margin-bottom: 12px;
+        }
+
+        .rep-images-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            background: #FFFFFF;
+            border: 1px solid #E4E4E7;
+            border-radius: 8px;
+            min-height: 40px;
+            align-content: flex-start;
+        }
+
+        .rep-image-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            border: 2px solid #E4E4E7;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .rep-image-thumb:hover {
+            border-color: #000000;
+            box-shadow: 0 0 0 1px #000000;
+        }
+
+        .rep-image-thumb.selected {
+            border-color: #000000;
+            box-shadow: 0 0 0 2px #000000;
+        }
+
+        .rep-image-thumb-delete {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: #EF4444;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rep-image-thumb:hover .rep-image-thumb-delete {
+            display: flex;
+        }
+
         .event-list {
             display: flex;
             flex-direction: column;
@@ -1258,7 +1318,18 @@
 
                 <button class="type-btn" onclick="startRepImageMode()" style="width: 100%; margin-top: 12px; margin-bottom: 12px; background-color: #FAFAFA; border-left: 4px solid #A1A1AA; height: auto; padding: 8px 10px;">Representative Image</button>
 
-                <div class="annotation-title" style="margin-top: 8px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
+                <!-- Rep Images Section -->
+                <div class="rep-images-section">
+                    <div class="annotation-title" style="margin-top: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRepImagesSection()">
+                        <span>Rep Images <span id="repImageCount" style="font-weight: 400; color: #71717A;">(0)</span></span>
+                        <span id="repImagesToggle" style="font-size: 14px; transition: transform 0.2s;">▼</span>
+                    </div>
+                    <div class="rep-images-list" id="repImagesList" style="display: none; gap: 8px; flex-wrap: wrap;">
+                        <!-- Rep images will be populated here -->
+                    </div>
+                </div>
+
+                <div class="annotation-title" style="margin-top: 12px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
                 <div class="event-list" id="eventList">
                     <!-- Events will be populated here -->
                 </div>
@@ -1350,9 +1421,11 @@
                     </div>
                     <div class="zdim-row" id="tFrameRow" style="display:none; position: relative;">
                         <span class="zdim-label">T</span>
-                        <input type="range" class="zdim-slider" id="tFrameSlider" min="1" value="1" oninput="onTFrameChange(this.value)">
+                        <div style="position: relative; flex: 1; display: flex; min-width: 0;">
+                            <input type="range" class="zdim-slider" id="tFrameSlider" min="1" value="1" oninput="onTFrameChange(this.value)" style="flex: 1; min-width: 0;">
+                            <div id="eventMarkers" style="position: absolute; top: 0; left: 0; height: 100%; pointer-events: none;"></div>
+                        </div>
                         <span class="zdim-value" id="tFrameValue">1 / 1</span>
-                        <div id="eventMarkers" style="position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none;"></div>
                     </div>
                     <div class="zdim-row" id="cChannelRow" style="display:none">
                         <span class="zdim-label">C</span>
@@ -1466,6 +1539,12 @@
         let repImageDrawing = false; // currently drawing a rectangle
         let repImageStart = null; // {x, y} start point
         let repImageEnd = null;   // {x, y} current/end point
+        let repImages = [];  // Array of {id, frame, x, y, width, height, imageData}
+        let selectedRepImageId = null;  // Currently selected rep image
+        let repImagesExpanded = false;  // Whether rep images section is expanded
+        let currentRepImageEditId = null; // Rep image being edited
+        let repImageDragging = false; // currently dragging the rectangle
+        let repImageDragOffset = null; // offset from rectangle center when dragging
 
         // ImageJ hyperstack dimensions
         let ijChannels = 1;
@@ -1640,6 +1719,7 @@
                 id: currentSessionId,
                 name: sessions[currentSessionId].name,
                 events: events,
+                repImages: repImages,
                 currentFrame: currentFrame,
                 videoPath: sessions[currentSessionId].videoPath,
                 videoName: sessions[currentSessionId].videoName,
@@ -1666,9 +1746,12 @@
 
             currentSessionId = sessionId;
             events = session.events || [];
+            repImages = session.repImages || [];
             currentFrame = session.currentFrame || 1;
             totalFrames = session.totalFrames || 180;
             videoFPS = session.videoFPS || 30;
+            selectedRepImageId = null;
+            renderRepImages();
 
             // Try to load file from IndexedDB
             if (session.videoPath) {
@@ -2465,6 +2548,7 @@
             repImageDrawing = false;
             repImageStart = null;
             repImageEnd = null;
+            currentRepImageEditId = null;
             canvasElement.style.cursor = zoomScale > 1 ? 'grab' : 'default';
             if (isTiffFile) {
                 renderTiffFrame();
@@ -2472,6 +2556,132 @@
                 renderVideoFrame();
             }
             drawCurrentFrameMarkers();
+        }
+
+        function saveRepImage(repImageId, x, y, width, height, canvas) {
+            // Find the rep image and save it
+            const repImage = repImages.find(r => r.id === repImageId);
+            if (!repImage) return;
+
+            // Update position and size
+            repImage.x = Math.round(x);
+            repImage.y = Math.round(y);
+            repImage.width = Math.round(width);
+            repImage.height = Math.round(height);
+
+            // Capture the image data from canvas
+            const ctx = canvas.getContext('2d');
+            repImage.imageData = canvas.toDataURL('image/png');
+
+            // Save to session
+            if (currentSessionId && sessions[currentSessionId]) {
+                sessions[currentSessionId].repImages = repImages;
+                saveSessions();
+            }
+
+            // Exit edit mode
+            currentRepImageEditId = null;
+            cancelRepImageMode();
+            renderRepImages();
+            updateUI();
+        }
+
+        function renderRepImages() {
+            const repImagesList = document.getElementById('repImagesList');
+            repImagesList.innerHTML = '';
+
+            repImages.forEach(repImage => {
+                const thumb = document.createElement('div');
+                thumb.className = 'rep-image-thumb';
+                if (repImage.imageData) {
+                    thumb.style.backgroundImage = `url(${repImage.imageData})`;
+                }
+                if (selectedRepImageId === repImage.id) {
+                    thumb.classList.add('selected');
+                }
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'rep-image-thumb-delete';
+                deleteBtn.textContent = '×';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteRepImage(repImage.id);
+                };
+
+                // Click to select and edit
+                thumb.onclick = () => {
+                    if (selectedRepImageId === repImage.id) {
+                        // Double-click to edit
+                        startEditRepImage(repImage.id);
+                    } else {
+                        selectedRepImageId = repImage.id;
+                        renderRepImages();
+                    }
+                };
+
+                thumb.appendChild(deleteBtn);
+                repImagesList.appendChild(thumb);
+            });
+
+            // Update count
+            document.getElementById('repImageCount').textContent = `(${repImages.length})`;
+        }
+
+        function deleteRepImage(repImageId) {
+            if (!confirm('Delete this rep image?')) return;
+
+            repImages = repImages.filter(r => r.id !== repImageId);
+            if (selectedRepImageId === repImageId) {
+                selectedRepImageId = null;
+            }
+
+            // Save to session
+            if (currentSessionId && sessions[currentSessionId]) {
+                sessions[currentSessionId].repImages = repImages;
+                saveSessions();
+            }
+
+            renderRepImages();
+        }
+
+        function startEditRepImage(repImageId) {
+            if (!hasVideo) {
+                alert('Please load a video first');
+                return;
+            }
+
+            const repImage = repImages.find(r => r.id === repImageId);
+            if (!repImage) return;
+
+            currentRepImageEditId = repImageId;
+            currentFrame = repImage.frame;
+            isRepImageMode = true;
+            repImageStart = { x: repImage.x, y: repImage.y };
+            repImageEnd = { x: repImage.x + repImage.width, y: repImage.y + repImage.height };
+            repImageDrawing = false;
+            canvasElement.style.cursor = 'default';
+
+            if (isTiffFile) {
+                renderTiffFrame();
+            } else {
+                renderVideoFrame();
+            }
+            drawCurrentFrameMarkers();
+        }
+
+        function toggleRepImagesSection() {
+            repImagesExpanded = !repImagesExpanded;
+            const list = document.getElementById('repImagesList');
+            const toggle = document.getElementById('repImagesToggle');
+
+            if (repImagesExpanded) {
+                list.style.display = 'flex';
+                toggle.style.transform = 'rotate(180deg)';
+            } else {
+                list.style.display = 'none';
+                toggle.style.transform = 'rotate(0deg)';
+            }
         }
 
         function handleCellImageClick(event) {
@@ -2717,38 +2927,94 @@
                 coordsDisplay.style.display = 'block';
 
                 // Rep. Image rectangle drawing
-                if (!isRepImageMode || !repImageDrawing) return;
-                // Constrain to square - use the larger dimension
-                const dx = coords.x - repImageStart.x;
-                const dy = coords.y - repImageStart.y;
-                const size = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
-                repImageEnd = {
-                    x: repImageStart.x + (dx > 0 ? size : -size),
-                    y: repImageStart.y + (dy > 0 ? size : -size)
-                };
+                if (!isRepImageMode) return;
+
+                if (repImageDrawing) {
+                    // Drawing mode - constrain to square
+                    const dx = coords.x - repImageStart.x;
+                    const dy = coords.y - repImageStart.y;
+                    const size = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
+                    repImageEnd = {
+                        x: repImageStart.x + (dx > 0 ? size : -size),
+                        y: repImageStart.y + (dy > 0 ? size : -size)
+                    };
+                    canvasElement.style.cursor = 'crosshair';
+                } else if (repImageStart && repImageEnd && !repImageDrawing) {
+                    // Dragging mode - reposition the square
+                    if (e.buttons === 1) {
+                        // Mouse button is down - drag the rectangle
+                        if (!repImageDragging) {
+                            repImageDragging = true;
+                            // Store the offset from current position
+                            const rectLeft = Math.min(repImageStart.x, repImageEnd.x);
+                            const rectTop = Math.min(repImageStart.y, repImageEnd.y);
+                            repImageDragOffset = {
+                                x: coords.x - rectLeft,
+                                y: coords.y - rectTop
+                            };
+                        }
+
+                        // Move rectangle by dragging
+                        const size = Math.abs(repImageEnd.x - repImageStart.x);
+                        const newLeft = coords.x - repImageDragOffset.x;
+                        const newTop = coords.y - repImageDragOffset.y;
+                        repImageStart = {
+                            x: newLeft,
+                            y: newTop
+                        };
+                        repImageEnd = {
+                            x: newLeft + size,
+                            y: newTop + size
+                        };
+                        canvasElement.style.cursor = 'grabbing';
+                    } else {
+                        // Mouse button not down
+                        repImageDragging = false;
+                        repImageDragOffset = null;
+                        canvasElement.style.cursor = 'grab';
+                    }
+                }
+
                 // Clear marker canvas and draw rectangle
                 markerContext.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
                 drawRepImageRectangle();
             });
 
             canvasElement.addEventListener('mouseup', (e) => {
-                if (!hasVideo || !isRepImageMode || !repImageDrawing) return;
-                repImageDrawing = false;
-                // Add rectangle as event
-                if (repImageStart && repImageEnd) {
-                    const x1 = Math.min(repImageStart.x, repImageEnd.x);
-                    const y1 = Math.min(repImageStart.y, repImageEnd.y);
-                    const x2 = Math.max(repImageStart.x, repImageEnd.x);
-                    const y2 = Math.max(repImageStart.y, repImageEnd.y);
-                    const width = x2 - x1;
-                    const height = y2 - y1;
-                    if (width > 5 && height > 5) {
-                        addRepImageEvent(x1, y1, width, height);
-                    }
+                if (!hasVideo || !isRepImageMode) return;
+
+                // If just finished drawing
+                if (repImageDrawing && repImageStart && repImageEnd) {
+                    repImageDrawing = false;
+                    repImageDragging = false;
+                    repImageDragOffset = null;
+                    // Don't cancel mode - allow dragging to reposition
+                    canvasElement.style.cursor = 'grab';
+                    return;
                 }
-                repImageStart = null;
-                repImageEnd = null;
-                cancelRepImageMode();
+
+                // Stop dragging
+                if (repImageDragging) {
+                    repImageDragging = false;
+                    repImageDragOffset = null;
+                    canvasElement.style.cursor = 'grab';
+                }
+            });
+
+            canvasElement.addEventListener('dblclick', (e) => {
+                // Double-click to finalize rep image
+                if (!hasVideo || !isRepImageMode || !repImageStart || !repImageEnd) return;
+
+                const x1 = Math.min(repImageStart.x, repImageEnd.x);
+                const y1 = Math.min(repImageStart.y, repImageEnd.y);
+                const x2 = Math.max(repImageStart.x, repImageEnd.x);
+                const y2 = Math.max(repImageStart.y, repImageEnd.y);
+                const width = x2 - x1;
+                const height = y2 - y1;
+
+                if (width > 5 && height > 5) {
+                    addRepImageEvent(x1, y1, width, height);
+                }
             });
 
             canvasElement.addEventListener('click', (e) => {
@@ -3128,21 +3394,20 @@
         // Render event markers on timeline
         function renderEventMarkers() {
             const markersContainer = document.getElementById('eventMarkers');
+            const sliderElement = document.getElementById('tFrameSlider');
+
             markersContainer.innerHTML = '';
 
-            // Get slider to calculate proper positioning
-            const tSlider = document.getElementById('tFrameSlider');
-            if (!tSlider) return;
+            // Get measurements for slider positioning
+            const sliderRect = sliderElement.getBoundingClientRect();
+            const sliderParent = sliderElement.parentElement;
+            const parentRect = sliderParent.getBoundingClientRect();
 
-            // Get dimensions to calculate marker positions accurately
-            const tRow = markersContainer.parentElement;
-            const tRowRect = tRow.getBoundingClientRect();
-            const tSliderRect = tSlider.getBoundingClientRect();
-
-            // Calculate slider track bounds (accounting for thumb radius ~8px on each side)
-            const sliderLeftEdge = tSliderRect.left - tRowRect.left;
-            const sliderRightEdge = tSliderRect.right - tRowRect.left;
-            const sliderTrackWidth = sliderRightEdge - sliderLeftEdge;
+            // Set markers container to span exactly the slider width using pixels
+            // This is more reliable than percentages since the parent is a flex container
+            markersContainer.style.left = '0px';
+            markersContainer.style.width = sliderRect.width + 'px';
+            markersContainer.style.right = 'auto'; // Clear the right: 0 from inline CSS
 
             // Create a marker for each event, positioned based on frame
             events.forEach((event, index) => {
@@ -3152,14 +3417,13 @@
 
                 marker.className = `event-marker ${isCurrentEvent ? 'current' : ''}`;
 
-                // Position marker along the slider track
-                // frame position as percentage of total frames
-                const framePercent = event.frame / totalFrames;
-                // Position along slider track width, starting from slider's left edge
-                const markerPixelPos = sliderLeftEdge + (framePercent * sliderTrackWidth);
-                // Convert back to percentage of container for CSS positioning
-                const markerPercent = (markerPixelPos / tRowRect.width) * 100;
-                marker.style.left = `calc(${markerPercent}% - 3px)`; // -3px to center 6px dot
+                // Position marker based on frame percentage within slider
+                // Use the same calculation as the slider: (value - min) / (max - min)
+                const sliderElement = document.getElementById('tFrameSlider');
+                const min = parseInt(sliderElement.min) || 1;
+                const max = parseInt(sliderElement.max) || totalFrames;
+                const framePercent = ((event.frame - min) / (max - min)) * 100;
+                marker.style.left = `calc(${framePercent}% - 3px)`; // -3px to center 6px dot
 
                 // Color based on event type
                 const color = getEventColor(event.type);
@@ -3443,19 +3707,51 @@
         }
 
         function addRepImageEvent(x, y, width, height) {
-            saveStateForUndo();
-            events.push({
-                id: Date.now() + Math.random(),
-                frame: currentFrame,
-                type: 'Rectangle',
-                x: x,
-                y: y,
-                width: width,
-                height: height,
-                notes: 'Rep. Image',
-                exportFrame: true
-            });
+            if (currentRepImageEditId) {
+                // Updating an existing rep image
+                const repImage = repImages.find(r => r.id === currentRepImageEditId);
+                if (repImage) {
+                    saveRepImage(repImage.id, x, y, width, height, canvasElement);
+                }
+            } else {
+                // Creating a new rep image
+                const repImageId = Date.now() + Math.random();
+                const repImage = {
+                    id: repImageId,
+                    frame: currentFrame,
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height,
+                    imageData: null
+                };
 
+                // Capture the cropped image from canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // Get the image from the current canvas (videoCanvas with video or TIFF frame rendered)
+                if (canvasElement && canvasElement.width > 0 && canvasElement.height > 0) {
+                    tempCtx.drawImage(canvasElement, x, y, width, height, 0, 0, width, height);
+                    repImage.imageData = tempCanvas.toDataURL('image/png');
+                }
+
+                repImages.push(repImage);
+
+                // Save to session
+                if (currentSessionId && sessions[currentSessionId]) {
+                    sessions[currentSessionId].repImages = repImages;
+                    saveSessions();
+                }
+
+                selectedRepImageId = repImageId;
+                repImagesExpanded = true;
+                renderRepImages();
+            }
+
+            cancelRepImageMode();
             updateUI();
         }
 
@@ -3797,6 +4093,27 @@
 
         // Re-render ruler on resize
         window.addEventListener('resize', renderTimelineRuler);
+
+        // Expose functions and state for testing
+        window.startRepImageMode = startRepImageMode;
+        window.cancelRepImageMode = cancelRepImageMode;
+        window.renderRepImages = renderRepImages;
+        window.deleteRepImage = deleteRepImage;
+        window.saveRepImage = saveRepImage;
+        window.addRepImageEvent = addRepImageEvent;
+        window.toggleRepImagesSection = toggleRepImagesSection;
+        window.getRepImagesState = () => ({
+            repImages: repImages,
+            repImageStart: repImageStart,
+            repImageEnd: repImageEnd,
+            repImageDrawing: repImageDrawing,
+            repImageDragging: repImageDragging,
+            repImageDragOffset: repImageDragOffset,
+            isRepImageMode: isRepImageMode,
+            selectedRepImageId: selectedRepImageId,
+            repImagesExpanded: repImagesExpanded,
+            currentRepImageEditId: currentRepImageEditId
+        });
 
         // Initialize app
         init().catch(error => {

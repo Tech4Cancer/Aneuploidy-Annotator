@@ -23,19 +23,19 @@ module.exports = {
         const sliderType = tSlider.type;
         const sliderIsRange = sliderType === 'range';
         const markersId = eventMarkers.id;
-        const markersParent = eventMarkers.parentElement.id;
+        const markersInTRow = tFrameRow.contains(eventMarkers);
 
         return {
           success: true,
           sliderType: sliderType,
           sliderIsRange: sliderIsRange,
           markersId: markersId,
-          markersParent: markersParent,
+          markersInTRow: markersInTRow,
           elementsExist: true
         };
       });
 
-      const elementsCorrect = result.success && result.sliderIsRange && result.markersParent === 'tFrameRow';
+      const elementsCorrect = result.success && result.sliderIsRange && result.markersInTRow;
       tests.push({
         name: 'Slider and marker elements exist and have correct structure',
         pass: elementsCorrect,
