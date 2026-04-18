@@ -2764,20 +2764,7 @@
         function deleteRepImage(repImageId) {
             if (!confirm('Delete this rep image?')) return;
 
-            console.log('Deleting rep image:', repImageId, 'Type:', typeof repImageId);
-            console.log('Events before:', events.length);
-
-            const beforeLen = events.length;
-            events = events.filter(e => {
-                const match = e.id === repImageId;
-                if (!match) {
-                    console.log('Not matching:', e.id, 'vs', repImageId, e.id == repImageId, e.id === repImageId);
-                }
-                return !match;
-            });
-
-            console.log('Events after:', events.length, 'Deleted:', beforeLen - events.length);
-
+            events = events.filter(e => e.id !== repImageId);
             if (currentEventId === repImageId) {
                 currentEventId = null;
             }
@@ -3966,7 +3953,7 @@
                 }
             } else {
                 // Creating a new rep image event
-                const repImageId = Date.now() + Math.random();
+                const repImageId = String(Date.now() + Math.random());
                 const newEvent = {
                     id: repImageId,
                     frame: currentFrame,
