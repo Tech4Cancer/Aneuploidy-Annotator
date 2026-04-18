@@ -1093,8 +1093,8 @@
         /* Add-event panel: sits in bottom-right of main area, non-blocking */
         #addEventModal {
             background: none;
-            align-items: flex-end;
-            justify-content: flex-end;
+            align-items: flex-start;
+            justify-content: flex-start;
             pointer-events: none;
         }
 
@@ -1105,7 +1105,7 @@
 
         #addEventModal .modal-content {
             pointer-events: all;
-            margin: 0 32px 32px 0;
+            margin: 32px 0 0 32px;
             box-shadow: 0 8px 40px rgba(0,0,0,0.18);
             border: 1px solid #E4E4E7;
             max-height: 90vh;
@@ -1383,37 +1383,8 @@
                 </div>
 
                 <div class="annotation-title" style="margin-top: 12px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
-                <div style="display: flex; gap: 12px; flex: 1; min-height: 0;">
-                    <div class="event-list" id="eventList" style="flex: 1; min-width: 0;">
-                        <!-- Events will be populated here -->
-                    </div>
-                    <div id="annotationEditor" class="annotation-editor-panel" style="display: none; flex: 0 0 200px; border-left: 1px solid #E4E4E7; padding-left: 12px;">
-                        <div class="annotation-title" style="margin-top: 0; margin-bottom: 12px;">Edit Event</div>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #71717A;">Type</label>
-                                <select id="editorEventType" style="width: 100%; padding: 6px; border: 1px solid #E4E4E7; border-radius: 4px; font-size: 12px; background: white;">
-                                    <option value="">(No type)</option>
-                                    <option value="Correct division">Correct division</option>
-                                    <option value="Misaligned chromosomes">Misaligned</option>
-                                    <option value="Lagging chromosomes">Lagging</option>
-                                    <option value="Anaphase bridge">Bridge</option>
-                                    <option value="Multipolar spindles">Multipolar</option>
-                                    <option value="Micronuclei">Micronuclei</option>
-                                    <option value="Mitotic failure">Failure</option>
-                                    <option value="Abberation">Abberation</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #71717A;">Notes</label>
-                                <textarea id="editorEventNotes" style="width: 100%; padding: 6px; border: 1px solid #E4E4E7; border-radius: 4px; font-size: 12px; resize: vertical; min-height: 80px; font-family: 'Inter', sans-serif;" placeholder="Add notes..."></textarea>
-                            </div>
-                            <div style="display: flex; gap: 6px;">
-                                <button onclick="saveAnnotationEdit()" style="flex: 1; padding: 6px; background: #10B981; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer;">Save</button>
-                                <button onclick="closeAnnotationEditor()" style="flex: 1; padding: 6px; background: #E4E4E7; color: #000000; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer;">Close</button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="event-list" id="eventList">
+                    <!-- Events will be populated here -->
                 </div>
             </div>
         </div>
@@ -3687,7 +3658,7 @@
                             onclick="event.stopPropagation(); toggleEventExport('${event.id}', this.checked)" title="Export frame image">
                         <div class="event-header">
                             <span class="event-time">Frame ${event.frame}</span>
-                            <button class="event-edit-btn" onclick="event.stopPropagation(); openAnnotationEditor({id: '${event.id}', type: '${event.type}', notes: '${event.notes || ''}', frame: ${event.frame}})">✎</button>
+                            <button class="event-edit-btn" onclick="event.stopPropagation(); editEvent('${event.id}')">✎</button>
                             <div class="event-delete" onclick="event.stopPropagation(); deleteEvent('${event.id}')">×</div>
                         </div>
                         ${typeLabel}
