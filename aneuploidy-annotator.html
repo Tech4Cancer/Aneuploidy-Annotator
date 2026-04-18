@@ -3054,7 +3054,8 @@
             // Clear then draw only the selected event's marker
             markerContext.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
             const selectedEvent = events.find(e => e.id === currentEventId);
-            if (selectedEvent && selectedEvent.x !== undefined && selectedEvent.y !== undefined) {
+            // Don't draw marker for rep images (Rectangle type) - they're regions, not point events
+            if (selectedEvent && selectedEvent.type !== 'Rectangle' && selectedEvent.x !== undefined && selectedEvent.y !== undefined) {
                 drawMarker(selectedEvent.x, selectedEvent.y);
             }
         }
