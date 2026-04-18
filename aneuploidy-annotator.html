@@ -2742,12 +2742,18 @@
                 eventCard.innerHTML = `
                     <div class="event-header">
                         <span class="event-time">Frame ${event.frame}</span>
-                        <div class="event-delete" onclick="event.stopPropagation(); deleteRepImage('${event.id}')">×</div>
+                        <div class="event-delete">×</div>
                     </div>
                     <div class="event-type">Rep Image</div>
                     ${thumbnailHTML}
                     ${notesHTML}
                 `;
+
+                const deleteBtn = eventCard.querySelector('.event-delete');
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteRepImage(event.id);
+                };
 
                 eventCard.onclick = (e) => {
                     if (!e.target.classList.contains('event-delete') &&

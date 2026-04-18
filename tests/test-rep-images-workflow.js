@@ -200,6 +200,49 @@ module.exports = {
       });
     }
 
+    // Test 6: Rep image counter updates correctly
+    try {
+      const result = await page.evaluate(() => {
+        const repImageCount = document.getElementById('repImageCount');
+        if (!repImageCount) {
+          return { error: 'repImageCount element not found' };
+        }
+
+        // Get counter text
+        const counterText = repImageCount.textContent;
+        const countMatch = counterText.match(/\d+/);
+        const currentCount = countMatch ? parseInt(countMatch[0]) : -1;
+
+        // Get actual rep images count
+        if (typeof window.getRepImagesState === 'function') {
+          const state = window.getRepImagesState();
+          const actualCount = state.repImages.length;
+
+          return {
+            counterExists: !!repImageCount,
+            counterText: counterText,
+            counterValue: currentCount,
+            actualCount: actualCount,
+            matches: currentCount === actualCount
+          };
+        }
+        return { error: 'getRepImagesState not found' };
+      });
+
+      const correct = result.counterExists && result.matches;
+      tests.push({
+        name: 'Rep image counter displays correct count',
+        pass: correct,
+        error: correct ? undefined : JSON.stringify(result)
+      });
+    } catch (error) {
+      tests.push({
+        name: 'Rep image counter displays correct count',
+        pass: false,
+        error: error.message
+      });
+    }
+
     return {
       passed: tests.filter(t => t.pass).length,
       failed: tests.filter(t => !t.pass).length,

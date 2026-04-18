@@ -133,6 +133,40 @@ module.exports = {
       });
     }
 
+    // Test 6: Rep image counter exists and displays correct count
+    try {
+      const result = await page.evaluate(() => {
+        const repImageCount = document.getElementById('repImageCount');
+        if (!repImageCount) {
+          return { error: 'repImageCount element not found' };
+        }
+
+        // Check initial count is 0
+        const initialText = repImageCount.textContent;
+        const initialCount = parseInt(initialText.match(/\d+/)?.[0] || '0');
+
+        return {
+          counterExists: !!repImageCount,
+          initialCountText: initialText,
+          initialCount: initialCount,
+          isParenthesized: initialText.includes('(') && initialText.includes(')')
+        };
+      });
+
+      const correct = result.counterExists && result.initialCount === 0 && result.isParenthesized;
+      tests.push({
+        name: 'Rep image counter exists and shows (0) initially',
+        pass: correct,
+        error: correct ? undefined : JSON.stringify(result)
+      });
+    } catch (error) {
+      tests.push({
+        name: 'Rep image counter exists and shows (0) initially',
+        pass: false,
+        error: error.message
+      });
+    }
+
     return {
       passed: tests.filter(t => t.pass).length,
       failed: tests.filter(t => !t.pass).length,
