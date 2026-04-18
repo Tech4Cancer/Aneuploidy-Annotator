@@ -201,6 +201,17 @@
             color: #000000;
         }
 
+        .annotation-editor-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #FAFAFA;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
         .add-event-btn {
             height: 40px;
             background: #000000;
@@ -1371,8 +1382,37 @@
                 </div>
 
                 <div class="annotation-title" style="margin-top: 12px;">All Events <span id="eventCount" style="font-weight: 400; color: #71717A;">(0/0)</span></div>
-                <div class="event-list" id="eventList">
-                    <!-- Events will be populated here -->
+                <div style="display: flex; gap: 12px; flex: 1; min-height: 0;">
+                    <div class="event-list" id="eventList" style="flex: 1; min-width: 0;">
+                        <!-- Events will be populated here -->
+                    </div>
+                    <div id="annotationEditor" class="annotation-editor-panel" style="display: none; flex: 0 0 200px; border-left: 1px solid #E4E4E7; padding-left: 12px;">
+                        <div class="annotation-title" style="margin-top: 0; margin-bottom: 12px;">Edit Event</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #71717A;">Type</label>
+                                <select id="editorEventType" style="width: 100%; padding: 6px; border: 1px solid #E4E4E7; border-radius: 4px; font-size: 12px; background: white;">
+                                    <option value="">(No type)</option>
+                                    <option value="Correct division">Correct division</option>
+                                    <option value="Misaligned chromosomes">Misaligned</option>
+                                    <option value="Lagging chromosomes">Lagging</option>
+                                    <option value="Anaphase bridge">Bridge</option>
+                                    <option value="Multipolar spindles">Multipolar</option>
+                                    <option value="Micronuclei">Micronuclei</option>
+                                    <option value="Mitotic failure">Failure</option>
+                                    <option value="Abberation">Abberation</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #71717A;">Notes</label>
+                                <textarea id="editorEventNotes" style="width: 100%; padding: 6px; border: 1px solid #E4E4E7; border-radius: 4px; font-size: 12px; resize: vertical; min-height: 80px; font-family: 'Inter', sans-serif;" placeholder="Add notes..."></textarea>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button onclick="saveAnnotationEdit()" style="flex: 1; padding: 6px; background: #10B981; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer;">Save</button>
+                                <button onclick="closeAnnotationEditor()" style="flex: 1; padding: 6px; background: #E4E4E7; color: #000000; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer;">Close</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2787,6 +2827,45 @@
             updateUI();
         }
 
+        function openAnnotationEditor(event) {
+            const editor = document.getElementById('annotationEditor');
+            document.getElementById('editorEventType').value = event.type || '';
+            document.getElementById('editorEventNotes').value = event.notes || '';
+            editor.dataset.eventId = event.id;
+            editor.style.display = 'flex';
+        }
+
+        function closeAnnotationEditor() {
+            const editor = document.getElementById('annotationEditor');
+            editor.style.display = 'none';
+            delete editor.dataset.eventId;
+        }
+
+        function saveAnnotationEdit() {
+            const editor = document.getElementById('annotationEditor');
+            const eventId = editor.dataset.eventId;
+            if (!eventId) return;
+
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+
+            const newType = document.getElementById('editorEventType').value;
+            const newNotes = document.getElementById('editorEventNotes').value;
+
+            event.type = newType || '(No type)';
+            event.notes = newNotes;
+
+            // Save to session
+            if (currentSessionId && sessions[currentSessionId]) {
+                sessions[currentSessionId].events = events;
+                saveSessions();
+            }
+
+            renderEvents();
+            closeAnnotationEditor();
+            updateUI();
+        }
+
         function startEditRepImage(repImageId) {
             if (!hasVideo) {
                 alert('Please load a video first');
@@ -3621,6 +3700,7 @@
                             e.target.type !== 'checkbox') {
                             currentFrame = event.frame;
                             currentEventId = event.id;
+                            openAnnotationEditor(event);
                             updateUI();
                         }
                     };
@@ -4422,6 +4502,9 @@
         window.addRepImageEvent = addRepImageEvent;
         window.toggleRepImagesSection = toggleRepImagesSection;
         window.approveRepImageFromButton = approveRepImageFromButton;
+        window.openAnnotationEditor = openAnnotationEditor;
+        window.closeAnnotationEditor = closeAnnotationEditor;
+        window.saveAnnotationEdit = saveAnnotationEdit;
         window.getRepImagesState = () => ({
             repImages: repImages,
             repImageStart: repImageStart,
