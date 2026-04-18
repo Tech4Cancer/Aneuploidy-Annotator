@@ -2721,7 +2721,7 @@
             }
 
             // Sort by frame (descending, newest first)
-            const sortedRepImages = repImageEvents.sort((a, b) => b.frame - a.frame);
+            const sortedRepImages = repImageEvents.sort((a, b) => a.frame - b.frame);
 
             // Render each rep image as an event card
             sortedRepImages.forEach(event => {
@@ -3557,8 +3557,8 @@
                 eventsByFrame[event.frame].push(event);
             });
 
-            // Sort frames descending (earliest at bottom)
-            const sortedFrames = Object.keys(eventsByFrame).sort((a, b) => b - a);
+            // Sort frames ascending (earliest at top)
+            const sortedFrames = Object.keys(eventsByFrame).sort((a, b) => a - b);
 
             // Update event count label - labeled events / total events (excluding Rectangle rep images)
             const nonRepImages = events.filter(e => e.type !== 'Rectangle');
