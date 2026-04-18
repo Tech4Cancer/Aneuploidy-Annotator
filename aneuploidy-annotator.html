@@ -1516,7 +1516,7 @@
                     </div>
                 </div>
 
-                <div class="keyboard-hint">Arrows: Events • &lt; &gt;: ±1 frame • Space: Play/Pause • 1-7: Annotate • N: Add • E: Edit • Delete: Remove</div>
+                <div class="keyboard-hint">Arrows: Events • &lt; &gt;: ±1 frame • Space: Play/Pause • 1-8: Annotate • N: Add • E: Edit • Delete: Remove</div>
             </div>
         </div>
     </div>
@@ -4428,7 +4428,8 @@
                 'Anaphase bridge',
                 'Multipolar spindles',
                 'Micronuclei',
-                'Mitotic failure'
+                'Mitotic failure',
+                'Abberation'
             ];
 
             document.addEventListener('keydown', (e) => {
@@ -4470,8 +4471,8 @@
                     e.preventDefault();
                     togglePlay();
                 }
-                // Number keys for event types (1-7)
-                else if (e.key >= '1' && e.key <= '7') {
+                // Number keys for event types (1-8)
+                else if (e.key >= '1' && e.key <= '8') {
                     const index = parseInt(e.key) - 1;
                     addEventByType(eventTypes[index]);
                 }
