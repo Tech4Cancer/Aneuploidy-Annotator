@@ -2810,8 +2810,6 @@
         }
 
         function deleteRepImage(repImageId) {
-            if (!confirm('Delete this rep image?')) return;
-
             events = events.filter(e => e.id !== repImageId);
             if (currentEventId === repImageId) {
                 currentEventId = null;
