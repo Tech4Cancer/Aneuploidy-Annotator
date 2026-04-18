@@ -2845,7 +2845,9 @@
             const eventId = editor.dataset.eventId;
             if (!eventId) return;
 
-            const event = events.find(e => e.id === eventId);
+            // Handle both string and number IDs
+            const numericId = typeof eventId === 'string' ? parseFloat(eventId) : eventId;
+            const event = events.find(e => e.id === numericId || e.id === eventId);
             if (!event) return;
 
             const newType = document.getElementById('editorEventType').value;
@@ -3685,7 +3687,7 @@
                             onclick="event.stopPropagation(); toggleEventExport('${event.id}', this.checked)" title="Export frame image">
                         <div class="event-header">
                             <span class="event-time">Frame ${event.frame}</span>
-                            <button class="event-edit-btn" onclick="event.stopPropagation(); editEvent('${event.id}')">✎</button>
+                            <button class="event-edit-btn" onclick="event.stopPropagation(); openAnnotationEditor({id: '${event.id}', type: '${event.type}', notes: '${event.notes || ''}', frame: ${event.frame}})">✎</button>
                             <div class="event-delete" onclick="event.stopPropagation(); deleteEvent('${event.id}')">×</div>
                         </div>
                         ${typeLabel}
@@ -3700,7 +3702,6 @@
                             e.target.type !== 'checkbox') {
                             currentFrame = event.frame;
                             currentEventId = event.id;
-                            openAnnotationEditor(event);
                             updateUI();
                         }
                     };
