@@ -3028,12 +3028,13 @@
             const selectedEvent = events.find(e => e.id === currentEventId);
             // Don't draw marker for rep images (Rectangle type) - they're regions, not point events
             if (selectedEvent && selectedEvent.type !== 'Rectangle' && selectedEvent.x !== undefined && selectedEvent.y !== undefined) {
-                drawMarker(selectedEvent.x, selectedEvent.y);
+                const markerColor = getEventColor(selectedEvent.type);
+                drawMarker(selectedEvent.x, selectedEvent.y, markerColor);
             }
         }
 
         // Draw annotation marker on overlay canvas
-        function drawMarker(x, y, isCurrent) {
+        function drawMarker(x, y, markerColor) {
             const ctx = markerContext;
             const r = 18;
             const armLen = 28;
@@ -3061,6 +3062,21 @@
                 ctx.stroke();
             }
 
+            // Convert color to a solid hex for marker (extract base color from rgba if needed)
+            let solidColor = '#FF3B3B'; // default red
+            if (markerColor && markerColor.startsWith('rgba')) {
+                // Extract color from rgba and convert to hex
+                const match = markerColor.match(/\d+/g);
+                if (match && match.length >= 3) {
+                    const r = parseInt(match[0]).toString(16).padStart(2, '0');
+                    const g = parseInt(match[1]).toString(16).padStart(2, '0');
+                    const b = parseInt(match[2]).toString(16).padStart(2, '0');
+                    solidColor = '#' + r + g + b;
+                }
+            } else if (markerColor && markerColor.startsWith('#')) {
+                solidColor = markerColor;
+            }
+
             // Cross hair arms
             ctx.beginPath();
             ctx.moveTo(adjustedX - armLen, adjustedY);
@@ -3072,13 +3088,13 @@
             ctx.moveTo(adjustedX, adjustedY + r);
             ctx.lineTo(adjustedX, adjustedY + armLen);
             strokePath('#000000', 5);
-            strokePath('#FF3B3B', 2);
+            strokePath(solidColor, 2);
 
             // Circle
             ctx.beginPath();
             ctx.arc(adjustedX, adjustedY, r, 0, 2 * Math.PI);
             strokePath('#000000', 5);
-            strokePath('#FF3B3B', 2);
+            strokePath(solidColor, 2);
 
             ctx.restore();
         }
@@ -3680,15 +3696,7 @@
                 });
             });
 
-            // Scroll event list so the active card is at the top of the viewable area
-            if (currentEventId) {
-                const activeCard = eventList.querySelector('.event-card.current');
-                if (activeCard) {
-                    const listRect = eventList.getBoundingClientRect();
-                    const cardRect = activeCard.getBoundingClientRect();
-                    eventList.scrollTop += cardRect.top - listRect.top;
-                }
-            }
+            // Don't auto-scroll event list when card is clicked
         }
 
         // Render event markers on timeline
