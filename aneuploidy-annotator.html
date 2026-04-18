@@ -2613,7 +2613,9 @@
             canvasElement.style.cursor = 'crosshair';
             document.getElementById('cancelRepImageBtn').style.display = 'block';
             document.getElementById('approveRepImageBtn').style.display = 'block';
-            document.getElementById('repImageSizeInput').style.display = 'block';
+            const sizeInput = document.getElementById('repImageSizeInput');
+            sizeInput.style.display = 'block';
+            sizeInput.value = repImageSize; // Set to last used size
         }
 
         function approveRepImageFromButton() {
@@ -3094,20 +3096,34 @@
                 // Update cursor coordinates display
                 const coords = canvasClickToImageCoords(e);
                 const coordsDisplay = document.getElementById('cursorCoords');
-                coordsDisplay.textContent = `X: ${coords.x}, Y: ${coords.y}`;
+                let displayText = `X: ${coords.x}, Y: ${coords.y}`;
+
+                // Add size info if in rep image mode
+                if (isRepImageMode) {
+                    const sizeInput = document.getElementById('repImageSizeInput');
+                    const size = parseInt(sizeInput.value) || 100;
+                    displayText += ` | Size: ${size}px`;
+                }
+
+                coordsDisplay.textContent = displayText;
                 coordsDisplay.style.display = 'block';
 
                 // Rep. Image rectangle drawing
                 if (!isRepImageMode) return;
 
                 if (repImageDrawing) {
-                    // Drawing mode - constrain to square
+                    // Drawing mode - use fixed size from input
+                    const sizeInput = document.getElementById('repImageSizeInput');
+                    const size = parseInt(sizeInput.value) || 100;
+                    repImageSize = size; // Remember the size for next rep image
+
                     const dx = coords.x - repImageStart.x;
                     const dy = coords.y - repImageStart.y;
-                    const size = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
+
+                    // Position the square so cursor is at the center
                     repImageEnd = {
-                        x: repImageStart.x + (dx > 0 ? size : -size),
-                        y: repImageStart.y + (dy > 0 ? size : -size)
+                        x: repImageStart.x + size,
+                        y: repImageStart.y + size
                     };
                     canvasElement.style.cursor = 'crosshair';
                 } else if (repImageResizing && repImageStart && repImageEnd && repImageResizeStart) {
