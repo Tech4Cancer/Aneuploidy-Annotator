@@ -2740,8 +2740,8 @@
                 const eventCard = document.createElement('div');
                 eventCard.className = `event-card ${event.id === currentEventId ? 'current' : ''}`;
 
-                // Rep images use gray background
-                eventCard.style.backgroundColor = '#FAFAFA';
+                // Rep images use semi-transparent background
+                eventCard.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
 
                 const notesHTML = event.notes ? `<div class="event-notes">${event.notes}</div>` : '';
 
@@ -4375,16 +4375,16 @@
 
         // Event type colors - distinct and non-repeating
         const eventTypeColors = {
-            'Correct division': '#D1FAE5',      // Green
-            'Misaligned chromosomes': '#FEF3C7', // Amber/Yellow
-            'Lagging chromosomes': '#FFECEB',    // Red
-            'Anaphase bridge': '#E0E7FF',        // Indigo/Blue
-            'Multipolar spindles': '#FCE7F3',    // Pink
-            'Micronuclei': '#DDD6FE',            // Purple
-            'Mitotic failure': '#F3E8FF',        // Violet
-            'Aberration': '#CFFAFE',             // Cyan
-            'Abberation': '#1F2937',             // Dark gray/Black tint
-            'Rectangle': '#FAFAFA'               // Gray for Rep. Image rectangles
+            'Correct division': 'rgba(209, 250, 229, 0.5)',      // Light green, semi-transparent
+            'Misaligned chromosomes': 'rgba(254, 243, 199, 0.5)', // Light amber, semi-transparent
+            'Lagging chromosomes': 'rgba(255, 236, 235, 0.5)',    // Light red, semi-transparent
+            'Anaphase bridge': 'rgba(224, 231, 255, 0.5)',        // Light indigo, semi-transparent
+            'Multipolar spindles': 'rgba(252, 231, 243, 0.5)',    // Light pink, semi-transparent
+            'Micronuclei': 'rgba(221, 214, 254, 0.5)',            // Light purple, semi-transparent
+            'Mitotic failure': 'rgba(243, 232, 255, 0.5)',        // Light violet, semi-transparent
+            'Aberration': 'rgba(207, 250, 254, 0.5)',             // Light cyan, semi-transparent
+            'Abberation': 'rgba(31, 41, 55, 0.2)',                // Dark gray, very transparent
+            'Rectangle': 'rgba(0, 0, 0, 0.1)'                      // Semi-transparent for Rep. Image rectangles
         };
 
         function getEventColor(eventType) {
