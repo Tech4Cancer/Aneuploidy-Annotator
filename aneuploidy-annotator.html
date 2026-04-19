@@ -1964,7 +1964,20 @@
             console.log('=== Loading TIFF file (UTIF, lazy) ===');
             try {
                 tiffBuffer = await file.arrayBuffer();
+
+                // Validate TIFF header (must start with 0x49 0x49 or 0x4D 0x4D for little/big endian)
+                const view = new Uint8Array(tiffBuffer);
+                if (tiffBuffer.byteLength < 4 ||
+                    (view[0] !== 0x49 && view[0] !== 0x4D) ||
+                    (view[0] === 0x49 && view[1] !== 0x49) ||
+                    (view[0] === 0x4D && view[1] !== 0x4D)) {
+                    throw new Error('Invalid TIFF file header - file may be corrupted or not a valid TIFF');
+                }
+
                 tiffIFDs = UTIF.decode(tiffBuffer);
+                if (!tiffIFDs || tiffIFDs.length === 0) {
+                    throw new Error('TIFF file has no valid frames');
+                }
                 tiffImages = new Array(tiffIFDs.length).fill(null); // lazy cache
 
                 console.log('TIFF IFD count:', tiffIFDs.length);
@@ -2049,7 +2062,15 @@
                 updateUI();
             } catch (error) {
                 console.error('Error loading TIFF file:', error);
-                alert('Error loading TIFF file: ' + error.message);
+                let errorMsg = 'Error loading TIFF file';
+                if (error.message && error.message.includes('permission')) {
+                    errorMsg = 'Cannot read TIFF file - permission or file corruption issue. Try a different file or format (PNG, JPG, video).';
+                } else if (error.message && error.message.includes('structured')) {
+                    errorMsg = 'TIFF file appears to be corrupted or in an unsupported format. Try converting to PNG/JPG or using a different TIFF file.';
+                } else {
+                    errorMsg = 'Error loading TIFF file: ' + (error.message || 'Unknown error');
+                }
+                alert(errorMsg);
             }
         }
 
