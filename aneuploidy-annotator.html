@@ -1317,12 +1317,108 @@
             font-weight: 500;
             color: #000000;
         }
+
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #000000;
+            color: #000000;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 8px;
+            background: transparent;
+            transition: all 0.2s;
+        }
+
+        .help-icon:hover {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        #helpModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #helpModal.active {
+            display: flex;
+        }
+
+        #helpModal .modal-content {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        #helpModal .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #000000;
+        }
+
+        #helpModal .help-section {
+            margin-bottom: 24px;
+        }
+
+        #helpModal .help-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #000000;
+        }
+
+        #helpModal .help-section ul, #helpModal .help-section ol {
+            margin-left: 20px;
+            color: #71717A;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        #helpModal .help-section li {
+            margin-bottom: 8px;
+        }
+
+        #helpModal .close-btn {
+            background: #000000;
+            color: #FFFFFF;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        #helpModal .close-btn:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
         <div class="sidebar">
-            <div class="logo">Aneuploidy Annotator</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="logo">Aneuploidy Annotator</div>
+                <div class="help-icon" onclick="openHelpModal()" title="Help">?</div>
+            </div>
 
             <div class="session-controls">
                 <div class="session-name-section">
@@ -1489,6 +1585,74 @@
 
                 <div class="keyboard-hint">Arrows: ±1 frame • &lt; &gt;: Events • Space: Play/Pause • 1-8: Annotate • Delete: Remove</div>
             </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal">
+        <div class="modal-content">
+            <div class="modal-title">Quick Start Guide</div>
+
+            <div class="help-section">
+                <h3>Getting Started</h3>
+                <ol>
+                    <li><strong>Create Session</strong>: Click "+ New Session" to start a new annotation session</li>
+                    <li><strong>Load Media</strong>: Select a video file, image sequence (TIFF), PNG, or JPG</li>
+                    <li><strong>Navigate</strong>: Use arrow keys to move frame-by-frame, and &lt; &gt; keys to jump between events</li>
+                </ol>
+            </div>
+
+            <div class="help-section">
+                <h3>Annotation Features</h3>
+                <p><strong>Quick Annotate (Left Panel)</strong></p>
+                <ul>
+                    <li><strong>1-8 Keys</strong>: Press number keys to tag events with types</li>
+                    <li><strong>Add Rep. Image</strong>: Mark representative images with a selection box to be exported as images</li>
+                </ul>
+                <p><strong>Event List</strong></p>
+                <ul>
+                    <li><strong>Click event</strong>: Select to view in main area</li>
+                    <li><strong>Edit button (✎)</strong>: Edit event type and notes</li>
+                    <li><strong>Delete button (×)</strong>: Remove event from list</li>
+                    <li><strong>Checkbox</strong>: Mark events to include as images in export</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>Playback Controls</h3>
+                <ul>
+                    <li><strong>Space</strong>: Play/Pause</li>
+                    <li><strong>-5 / -1 / +1 / +5</strong>: Jump frames</li>
+                    <li><strong>← Prev Event / Next Event →</strong>: Navigate between annotated events</li>
+                    <li><strong>Brightness slider</strong>: Adjust image brightness (100% is neutral)</li>
+                    <li><strong>Zoom buttons</strong>: +/- to zoom, ⊡ to reset</li>
+                    <li><strong>Scroll wheel</strong>: Zoom centered on cursor</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>Keyboard Shortcuts</h3>
+                <ul>
+                    <li><strong>Arrows</strong>: ±1 frame navigation</li>
+                    <li><strong>&lt; &gt;</strong>: Jump to previous/next event</li>
+                    <li><strong>Space</strong>: Play/Pause</li>
+                    <li><strong>1-8</strong>: Quick annotate with type</li>
+                    <li><strong>Delete</strong>: Remove current frame's event</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>Exporting</h3>
+                <p>Click <strong>Export</strong> to download:</p>
+                <ul>
+                    <li><strong>CSV</strong>: All event metadata with frame numbers, types, notes</li>
+                    <li><strong>Metadata</strong>: Session info and event statistics</li>
+                    <li><strong>Representative Images</strong>: Folder with marked rep images as PNG snapshots</li>
+                    <li><strong>Frames</strong>: Folder with events checked in the list</li>
+                </ul>
+            </div>
+
+            <button class="close-btn" onclick="closeHelpModal()">Close</button>
         </div>
     </div>
 
@@ -3934,6 +4098,22 @@
             document.querySelector('#addEventModal .modal-title').textContent = 'Add Event';
             document.querySelector('#addEventModal .modal-btn.primary').textContent = 'Add';
         }
+
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('active');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.remove('active');
+        }
+
+        // Close help modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const helpModal = document.getElementById('helpModal');
+            if (event.target === helpModal) {
+                closeHelpModal();
+            }
+        });
 
         function addEvent() {
             const type = document.getElementById('eventTypeInput').value;
