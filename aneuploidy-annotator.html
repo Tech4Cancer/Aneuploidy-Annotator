@@ -1330,9 +1330,10 @@
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            margin-left: 8px;
+            margin-left: 4px;
             background: transparent;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
 
         .help-icon:hover {
@@ -1415,8 +1416,8 @@
 <body>
     <div class="app-container">
         <div class="sidebar">
-            <div style="display: flex; align-items: center; gap: 4px; margin-right: -8px;">
-                <div class="logo">Aneuploidy Annotator</div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div class="logo" style="white-space: nowrap;">Aneuploidy Annotator</div>
                 <div class="help-icon" onclick="openHelpModal()" title="Help">?</div>
             </div>
 
@@ -1597,19 +1598,21 @@
                 <h3>Getting Started</h3>
                 <ol>
                     <li><strong>Create Session</strong>: Click "+ New Session" to start a new annotation session</li>
-                    <li><strong>Load Media</strong>: Select a video file, image sequence (TIFF), PNG, or JPG</li>
+                    <li><strong>Load Media</strong>: Select a video file, image sequence (TIFF), PNG, JPG</li>
                     <li><strong>Navigate</strong>: Use arrow keys to move frame-by-frame, and &lt; &gt; keys to jump between events</li>
                 </ol>
             </div>
 
             <div class="help-section">
-                <h3>Annotation Features</h3>
-                <p><strong>Quick Annotate (Left Panel)</strong></p>
+                <h3>Quick Annotate (Left Panel)</h3>
                 <ul>
-                    <li><strong>1-8 Keys</strong>: Press number keys to tag events with types</li>
+                    <li><strong>1-8 Keys</strong>: Press number keys to tag events, then click on its location in the image</li>
                     <li><strong>Add Rep. Image</strong>: Mark representative images with a selection box to be exported as images</li>
                 </ul>
-                <p><strong>Event List</strong></p>
+            </div>
+
+            <div class="help-section">
+                <h3>Event List</h3>
                 <ul>
                     <li><strong>Click event</strong>: Select to view in main area</li>
                     <li><strong>Edit button (✎)</strong>: Edit event type and notes</li>
@@ -1621,12 +1624,28 @@
             <div class="help-section">
                 <h3>Playback Controls</h3>
                 <ul>
-                    <li><strong>Space</strong>: Play/Pause</li>
+                    <li><strong>Space</strong>: Play/Pause video</li>
                     <li><strong>-5 / -1 / +1 / +5</strong>: Jump frames</li>
                     <li><strong>← Prev Event / Next Event →</strong>: Navigate between annotated events</li>
-                    <li><strong>Brightness slider</strong>: Adjust image brightness (100% is neutral)</li>
-                    <li><strong>Zoom buttons</strong>: +/- to zoom, ⊡ to reset</li>
-                    <li><strong>Scroll wheel</strong>: Zoom centered on cursor</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>Video/Image Adjustment</h3>
+                <ul>
+                    <li><strong>Brightness slider</strong>: Adjust image brightness (100% is neutral position)</li>
+                    <li><strong>Zoom buttons</strong>: +/-, Reset (⊡)</li>
+                    <li><strong>Quartile zoom</strong>: ↖ ↗ ↙ ↘ buttons to zoom into image corners</li>
+                    <li><strong>Scroll to zoom</strong>: Use mouse wheel to zoom, centered on cursor position</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>Timeline</h3>
+                <ul>
+                    <li><strong>Click slider</strong>: Jump to frame</li>
+                    <li><strong>Event markers</strong>: Colored dots show annotated events</li>
+                    <li><strong>Frame counter</strong>: Shows current position</li>
                 </ul>
             </div>
 
@@ -1645,7 +1664,7 @@
                 <h3>Exporting</h3>
                 <p>Click <strong>Export</strong> to download:</p>
                 <ul>
-                    <li><strong>CSV</strong>: All event metadata with frame numbers, types, notes</li>
+                    <li><strong>CSV</strong>: All event metadata with frame numbers, types, coordinates, notes</li>
                     <li><strong>Metadata</strong>: Session info and event statistics</li>
                     <li><strong>Representative Images</strong>: Folder with marked rep images as PNG snapshots</li>
                     <li><strong>Frames</strong>: Folder with events checked in the list</li>
