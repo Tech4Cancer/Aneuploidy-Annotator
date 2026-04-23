@@ -2172,6 +2172,9 @@
 
                 console.log('TIFF IFD count:', tiffIFDs.length);
                 console.log('First IFD width:', firstIFD['256'], 'height:', firstIFD['257']);
+                console.log('TIFF Compression tag (259):', firstIFD['259']);
+                console.log('TIFF BitsPerSample tag (258):', firstIFD['258']);
+                console.log('TIFF SamplesPerPixel tag (277):', firstIFD['277']);
 
                 // Parse ImageJ metadata from first IFD's ImageDescription (tag 270)
                 ijChannels = 1; ijSlices = 1; ijFrames = 1;
@@ -2256,22 +2259,33 @@
             } catch (error) {
                 console.error('Error loading TIFF file:', error);
                 console.error('Error stack:', error.stack);
-                let errorMsg = 'Error loading TIFF file';
+
+                let errorTitle = 'Error Loading TIFF File';
+                let errorDetails = '';
+                let errorMsg = '';
 
                 if (error.message && error.message.includes('Invalid TIFF file header')) {
                     errorMsg = 'File is not a valid TIFF. Make sure you selected a .tif or .tiff file.';
                 } else if (error.message && error.message.includes('no valid frames')) {
                     errorMsg = 'TIFF file has no readable frames. The file may be corrupted.';
                 } else if (error.message && error.message.includes('permission')) {
-                    errorMsg = 'Cannot read TIFF file - permission or file corruption issue. Try a different file or format (PNG, JPG, video).';
+                    errorMsg = 'Cannot read TIFF file - permission or file corruption issue.';
                 } else if (error.message && error.message.includes('structured')) {
-                    errorMsg = 'TIFF file appears to be corrupted or in an unsupported format. Try converting to PNG/JPG or using a different TIFF file.';
+                    errorMsg = 'TIFF file appears to use an unsupported format or compression.';
                 } else if (error.message && error.message.includes('Cannot set properties')) {
-                    errorMsg = 'Cannot read TIFF dimensions. The file may use an unsupported TIFF compression format.';
+                    errorMsg = 'Cannot read TIFF image dimensions. The file may use unsupported TIFF compression.';
+                } else if (error.message && error.message.includes('Cannot determine image dimensions')) {
+                    errorMsg = 'Cannot determine image dimensions from TIFF file.';
+                    errorDetails = error.message;
                 } else {
-                    errorMsg = 'Error loading TIFF file: ' + (error.message || 'Unknown error') + '\n\nTry converting the file with ImageJ or converting to PNG/JPG format.';
+                    errorMsg = error.message || 'Unknown error while loading TIFF file.';
                 }
-                alert(errorMsg);
+
+                const fileInfo = '\n\n--- File Details ---\nFile: ' + file.name + '\nSize: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                const suggestion = '\n\n--- Suggestion ---\nTry converting the file with ImageJ/Fiji:\n1. Open file in ImageJ\n2. File → Save As → TIFF\n3. Choose uncompressed format\n\nOr convert to PNG/JPG instead.';
+
+                const fullMessage = errorMsg + (errorDetails ? '\n\nDetails: ' + errorDetails : '') + fileInfo + suggestion;
+                alert(fullMessage);
                 console.log('Failed to load file. File size:', file.size, 'bytes. File name:', file.name);
             }
         }
