@@ -2170,11 +2170,23 @@
 
                 tiffImages = new Array(tiffIFDs.length).fill(null); // lazy cache
 
-                console.log('TIFF IFD count:', tiffIFDs.length);
-                console.log('First IFD width:', firstIFD['256'], 'height:', firstIFD['257']);
-                console.log('TIFF Compression tag (259):', firstIFD['259']);
-                console.log('TIFF BitsPerSample tag (258):', firstIFD['258']);
-                console.log('TIFF SamplesPerPixel tag (277):', firstIFD['277']);
+                console.log('=== TIFF METADATA ===');
+                console.log('IFD count:', tiffIFDs.length);
+                console.log('Image width (256):', firstIFD['256']);
+                console.log('Image height (257):', firstIFD['257']);
+                console.log('BitsPerSample (258):', firstIFD['258']);
+                console.log('Compression (259):', firstIFD['259'], '(1=uncompressed, 5=LZW, 7=JPEG, etc)');
+                console.log('PhotometricInterpretation (262):', firstIFD['262']);
+                console.log('StripOffsets (273):', firstIFD['273'] ? 'present' : 'missing');
+                console.log('SamplesPerPixel (277):', firstIFD['277']);
+                console.log('RowsPerStrip (278):', firstIFD['278']);
+                console.log('StripByteCounts (279):', firstIFD['279'] ? 'present' : 'missing');
+                console.log('XResolution (282):', firstIFD['282']);
+                console.log('YResolution (283):', firstIFD['283']);
+                console.log('PlanarConfiguration (284):', firstIFD['284']);
+                console.log('ImageDescription (270):', firstIFD['270'] ? 'present (' + String(firstIFD['270']).substring(0, 100) + '...)' : 'missing');
+                console.log('All IFD tags:', Object.keys(firstIFD).sort());
+                console.log('=== END METADATA ===');
 
                 // Parse ImageJ metadata from first IFD's ImageDescription (tag 270)
                 ijChannels = 1; ijSlices = 1; ijFrames = 1;
@@ -2260,33 +2272,13 @@
                 console.error('Error loading TIFF file:', error);
                 console.error('Error stack:', error.stack);
 
-                let errorTitle = 'Error Loading TIFF File';
-                let errorDetails = '';
-                let errorMsg = '';
+                let errorMsg = error.message || 'Unknown error';
+                const fileInfo = 'File: ' + file.name + ' | Size: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                const debugNote = '\n\n[Debug Info] Check browser console (F12) for detailed TIFF metadata to help diagnose the issue.';
 
-                if (error.message && error.message.includes('Invalid TIFF file header')) {
-                    errorMsg = 'File is not a valid TIFF. Make sure you selected a .tif or .tiff file.';
-                } else if (error.message && error.message.includes('no valid frames')) {
-                    errorMsg = 'TIFF file has no readable frames. The file may be corrupted.';
-                } else if (error.message && error.message.includes('permission')) {
-                    errorMsg = 'Cannot read TIFF file - permission or file corruption issue.';
-                } else if (error.message && error.message.includes('structured')) {
-                    errorMsg = 'TIFF file appears to use an unsupported format or compression.';
-                } else if (error.message && error.message.includes('Cannot set properties')) {
-                    errorMsg = 'Cannot read TIFF image dimensions. The file may use unsupported TIFF compression.';
-                } else if (error.message && error.message.includes('Cannot determine image dimensions')) {
-                    errorMsg = 'Cannot determine image dimensions from TIFF file.';
-                    errorDetails = error.message;
-                } else {
-                    errorMsg = error.message || 'Unknown error while loading TIFF file.';
-                }
-
-                const fileInfo = '\n\n--- File Details ---\nFile: ' + file.name + '\nSize: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB';
-                const suggestion = '\n\n--- Suggestion ---\nTry converting the file with ImageJ/Fiji:\n1. Open file in ImageJ\n2. File → Save As → TIFF\n3. Choose uncompressed format\n\nOr convert to PNG/JPG instead.';
-
-                const fullMessage = errorMsg + (errorDetails ? '\n\nDetails: ' + errorDetails : '') + fileInfo + suggestion;
+                const fullMessage = errorMsg + '\n\n' + fileInfo + debugNote;
                 alert(fullMessage);
-                console.log('Failed to load file. File size:', file.size, 'bytes. File name:', file.name);
+                console.log('Failed to load file:', file.name, 'Size:', file.size, 'bytes');
             }
         }
 
