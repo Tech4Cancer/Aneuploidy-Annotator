@@ -2161,16 +2161,22 @@
                 if (!tiffIFDs || tiffIFDs.length === 0) {
                     throw new Error('TIFF file has no valid frames');
                 }
+
+                // Check first IFD for critical properties
+                const firstIFD = tiffIFDs[0];
+                if (!firstIFD || !firstIFD['256'] || !firstIFD['257']) {
+                    console.warn('Warning: TIFF may have unusual structure. Width:', firstIFD?.['256'], 'Height:', firstIFD?.['257']);
+                }
+
                 tiffImages = new Array(tiffIFDs.length).fill(null); // lazy cache
 
                 console.log('TIFF IFD count:', tiffIFDs.length);
+                console.log('First IFD width:', firstIFD['256'], 'height:', firstIFD['257']);
 
                 // Parse ImageJ metadata from first IFD's ImageDescription (tag 270)
                 ijChannels = 1; ijSlices = 1; ijFrames = 1;
                 currentZ = 1; currentT = 1; currentC = 1;
                 tiffDimOrder = 'XYZCT';
-
-                const firstIFD = tiffIFDs[0];
                 // UTIF stores tags as numeric string keys, e.g. "270" for ImageDescription
                 const descRaw = firstIFD['270'];
                 let desc = '';
@@ -2227,8 +2233,12 @@
                 // Set canvas size from first IFD dimensions
                 const w = firstIFD.width  || firstIFD['256'] || 512;
                 const h = firstIFD.height || firstIFD['257'] || 512;
+                if (!w || !h || w < 1 || h < 1) {
+                    throw new Error('Cannot determine image dimensions. Width: ' + w + ', Height: ' + h);
+                }
                 canvasElement.width = w;
                 canvasElement.height = h;
+                console.log('Canvas set to:', w, 'x', h);
 
                 document.getElementById('placeholderText').style.display = 'none';
                 document.getElementById('placeholderText').style.visibility = 'hidden';
@@ -2245,15 +2255,24 @@
                 updateUI();
             } catch (error) {
                 console.error('Error loading TIFF file:', error);
+                console.error('Error stack:', error.stack);
                 let errorMsg = 'Error loading TIFF file';
-                if (error.message && error.message.includes('permission')) {
+
+                if (error.message && error.message.includes('Invalid TIFF file header')) {
+                    errorMsg = 'File is not a valid TIFF. Make sure you selected a .tif or .tiff file.';
+                } else if (error.message && error.message.includes('no valid frames')) {
+                    errorMsg = 'TIFF file has no readable frames. The file may be corrupted.';
+                } else if (error.message && error.message.includes('permission')) {
                     errorMsg = 'Cannot read TIFF file - permission or file corruption issue. Try a different file or format (PNG, JPG, video).';
                 } else if (error.message && error.message.includes('structured')) {
                     errorMsg = 'TIFF file appears to be corrupted or in an unsupported format. Try converting to PNG/JPG or using a different TIFF file.';
+                } else if (error.message && error.message.includes('Cannot set properties')) {
+                    errorMsg = 'Cannot read TIFF dimensions. The file may use an unsupported TIFF compression format.';
                 } else {
-                    errorMsg = 'Error loading TIFF file: ' + (error.message || 'Unknown error');
+                    errorMsg = 'Error loading TIFF file: ' + (error.message || 'Unknown error') + '\n\nTry converting the file with ImageJ or converting to PNG/JPG format.';
                 }
                 alert(errorMsg);
+                console.log('Failed to load file. File size:', file.size, 'bytes. File name:', file.name);
             }
         }
 
