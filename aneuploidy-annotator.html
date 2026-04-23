@@ -2162,30 +2162,39 @@
                     throw new Error('TIFF file has no valid frames');
                 }
 
-                // Check first IFD for critical properties
+                // Check first IFD for critical properties and gather metadata
                 const firstIFD = tiffIFDs[0];
+                const compressionMap = {
+                    1: 'Uncompressed',
+                    2: 'CCITT',
+                    3: 'Group3Fax',
+                    4: 'Group4Fax',
+                    5: 'LZW',
+                    6: 'OJPEG',
+                    7: 'JPEG',
+                    8: 'AdobeDeflate',
+                    32773: 'PackBits',
+                    34712: 'JPEG2000'
+                };
+
+                const tiffMetadata = {
+                    frames: tiffIFDs.length,
+                    width: firstIFD['256'] || 'unknown',
+                    height: firstIFD['257'] || 'unknown',
+                    compression: compressionMap[firstIFD['259']] || ('Code ' + firstIFD['259']),
+                    bitsPerSample: firstIFD['258'] || 'unknown',
+                    samplesPerPixel: firstIFD['277'] || 'unknown',
+                    hasImageDescription: !!firstIFD['270'],
+                    allTags: Object.keys(firstIFD).sort().join(', ')
+                };
+
                 if (!firstIFD || !firstIFD['256'] || !firstIFD['257']) {
-                    console.warn('Warning: TIFF may have unusual structure. Width:', firstIFD?.['256'], 'Height:', firstIFD?.['257']);
+                    console.warn('Warning: TIFF may have unusual structure', tiffMetadata);
                 }
 
                 tiffImages = new Array(tiffIFDs.length).fill(null); // lazy cache
 
-                console.log('=== TIFF METADATA ===');
-                console.log('IFD count:', tiffIFDs.length);
-                console.log('Image width (256):', firstIFD['256']);
-                console.log('Image height (257):', firstIFD['257']);
-                console.log('BitsPerSample (258):', firstIFD['258']);
-                console.log('Compression (259):', firstIFD['259'], '(1=uncompressed, 5=LZW, 7=JPEG, etc)');
-                console.log('PhotometricInterpretation (262):', firstIFD['262']);
-                console.log('StripOffsets (273):', firstIFD['273'] ? 'present' : 'missing');
-                console.log('SamplesPerPixel (277):', firstIFD['277']);
-                console.log('RowsPerStrip (278):', firstIFD['278']);
-                console.log('StripByteCounts (279):', firstIFD['279'] ? 'present' : 'missing');
-                console.log('XResolution (282):', firstIFD['282']);
-                console.log('YResolution (283):', firstIFD['283']);
-                console.log('PlanarConfiguration (284):', firstIFD['284']);
-                console.log('ImageDescription (270):', firstIFD['270'] ? 'present (' + String(firstIFD['270']).substring(0, 100) + '...)' : 'missing');
-                console.log('All IFD tags:', Object.keys(firstIFD).sort());
+                console.log('=== TIFF METADATA ===', tiffMetadata);
                 console.log('=== END METADATA ===');
 
                 // Parse ImageJ metadata from first IFD's ImageDescription (tag 270)
@@ -2273,12 +2282,30 @@
                 console.error('Error stack:', error.stack);
 
                 let errorMsg = error.message || 'Unknown error';
-                const fileInfo = 'File: ' + file.name + ' | Size: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB';
-                const debugNote = '\n\n[Debug Info] Check browser console (F12) for detailed TIFF metadata to help diagnose the issue.';
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileInfo = 'File: ' + file.name + '\nSize: ' + fileSize + ' MB';
 
-                const fullMessage = errorMsg + '\n\n' + fileInfo + debugNote;
+                // Try to get TIFF metadata if available
+                let metadataInfo = '';
+                if (tiffIFDs && tiffIFDs.length > 0) {
+                    const firstIFD = tiffIFDs[0];
+                    const compressionMap = {
+                        1: 'Uncompressed', 2: 'CCITT', 3: 'Group3Fax', 4: 'Group4Fax',
+                        5: 'LZW', 6: 'OJPEG', 7: 'JPEG', 8: 'AdobeDeflate',
+                        32773: 'PackBits', 34712: 'JPEG2000'
+                    };
+                    metadataInfo = '\n\nFile Metadata:\n' +
+                        'Frames: ' + tiffIFDs.length + '\n' +
+                        'Width: ' + (firstIFD['256'] || 'unknown') + '\n' +
+                        'Height: ' + (firstIFD['257'] || 'unknown') + '\n' +
+                        'Compression: ' + (compressionMap[firstIFD['259']] || ('Code ' + firstIFD['259'])) + '\n' +
+                        'Bits/Sample: ' + (firstIFD['258'] || 'unknown') + '\n' +
+                        'Samples/Pixel: ' + (firstIFD['277'] || 'unknown');
+                }
+
+                const fullMessage = errorMsg + '\n\n' + fileInfo + metadataInfo;
                 alert(fullMessage);
-                console.log('Failed to load file:', file.name, 'Size:', file.size, 'bytes');
+                console.log('Failed to load file:', file.name, 'Error:', error.message);
             }
         }
 
