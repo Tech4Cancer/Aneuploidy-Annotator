@@ -2148,15 +2148,7 @@
             try {
                 tiffBuffer = await file.arrayBuffer();
 
-                // Validate TIFF header (must start with 0x49 0x49 or 0x4D 0x4D for little/big endian)
-                const view = new Uint8Array(tiffBuffer);
-                if (tiffBuffer.byteLength < 4 ||
-                    (view[0] !== 0x49 && view[0] !== 0x4D) ||
-                    (view[0] === 0x49 && view[1] !== 0x49) ||
-                    (view[0] === 0x4D && view[1] !== 0x4D)) {
-                    throw new Error('Invalid TIFF file header - file may be corrupted or not a valid TIFF');
-                }
-
+                // Let UTIF handle decoding and report any issues
                 tiffIFDs = UTIF.decode(tiffBuffer);
                 if (!tiffIFDs || tiffIFDs.length === 0) {
                     throw new Error('TIFF file has no valid frames');
