@@ -2146,6 +2146,11 @@
         async function loadTiffFile(file) {
             console.log('=== Loading TIFF file (UTIF, lazy) ===');
             try {
+                const maxFileSize = 2 * 1024 * 1024 * 1024; // 2GB limit
+                if (file.size > maxFileSize) {
+                    throw new Error('File is too large (' + (file.size / 1024 / 1024 / 1024).toFixed(2) + ' GB). Maximum supported: 2 GB.');
+                }
+
                 tiffBuffer = await file.arrayBuffer();
 
                 // Let UTIF handle decoding and report any issues
