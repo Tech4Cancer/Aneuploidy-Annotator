@@ -1684,8 +1684,9 @@
                 <input type="text" class="form-input" id="newSessionNameInput" placeholder="Enter session name...">
             </div>
             <div class="form-group">
-                <label class="form-label">Upload Video/Image (Optional)</label>
-                <input type="file" class="form-input" id="newSessionVideoInput" accept="video/*,image/tiff,.tif,.tiff,image/png,image/jpeg,.png,.jpg,.jpeg">
+                <label class="form-label">Upload Video/Image Files (Optional)</label>
+                <div id="partFilesList" style="margin-bottom: 10px; max-height: 150px; overflow-y: auto;"></div>
+                <button type="button" class="modal-btn secondary" id="addPartBtn" onclick="addPartFileInput()" style="margin-bottom: 10px; width: 100%;">Add Part</button>
             </div>
             <div class="modal-actions">
                 <button class="modal-btn secondary" onclick="closeNewSessionModal()">Cancel</button>
@@ -1794,6 +1795,11 @@
         let currentT = 1;   // 1-based T frame
         let currentC = 1;   // 1-based channel
 
+        // Multi-part file upload
+        let partFiles = [];        // Array of File objects for multi-part sessions
+        let videoPartFiles = [];   // Array of loaded File/Blob objects from IndexedDB
+        let currentPartIndex = -1; // which part is currently loaded into player
+
         // IndexedDB Setup
         function initIndexedDB() {
             return new Promise((resolve, reject) => {
@@ -1823,19 +1829,22 @@
         }
 
         // Store video in IndexedDB
-        function storeVideoInDB(sessionId, videoBlob) {
+        function storeVideoInDB(sessionId, videoBlobs) {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction(['videos'], 'readwrite');
                 const store = transaction.objectStore('videos');
 
+                // Handle both single blob (legacy) and array of blobs (multipart)
+                const blobs = Array.isArray(videoBlobs) ? videoBlobs : [videoBlobs];
+
                 const request = store.put({
                     sessionId: sessionId,
-                    videoBlob: videoBlob,
+                    videoParts: blobs,
                     timestamp: Date.now()
                 });
 
                 request.onsuccess = () => {
-                    console.log('Video stored in IndexedDB for session:', sessionId);
+                    console.log('Video(s) stored in IndexedDB for session:', sessionId);
                     resolve();
                 };
 
@@ -1846,7 +1855,7 @@
             });
         }
 
-        // Retrieve video from IndexedDB
+        // Retrieve video from IndexedDB (returns array of blobs for backwards compatibility)
         function getVideoFromDB(sessionId) {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction(['videos'], 'readonly');
@@ -1856,7 +1865,14 @@
                 request.onsuccess = () => {
                     if (request.result) {
                         console.log('Video retrieved from IndexedDB for session:', sessionId);
-                        resolve(request.result.videoBlob);
+                        // Backwards compat: if old record has videoBlob, wrap it as array
+                        if (request.result.videoParts) {
+                            resolve(request.result.videoParts);
+                        } else if (request.result.videoBlob) {
+                            resolve([request.result.videoBlob]);
+                        } else {
+                            resolve(null);
+                        }
                     } else {
                         console.log('No video found in IndexedDB for session:', sessionId);
                         resolve(null);
@@ -2018,12 +2034,36 @@
             selectedRepImageId = null;
             repImagesExpanded = false;
 
-            // Try to load file from IndexedDB
-            if (session.videoPath) {
+            // Try to load file(s) from IndexedDB
+            if (session.videoParts) {
+                // Multi-part session
                 try {
-                    const fileBlob = await getVideoFromDB(sessionId);
-                    if (fileBlob) {
+                    const blobs = await getVideoFromDB(sessionId);
+                    if (blobs && blobs.length > 0) {
+                        console.log('Multi-part files loaded from IndexedDB');
+                        videoPartFiles = blobs;
+                        currentPartIndex = -1;
+                        await loadPartFile(0);
+                    } else {
+                        hasVideo = false;
+                        canvasElement.style.display = 'none';
+                        document.getElementById('placeholderText').textContent = 'Video files not found. Upload files again.';
+                        document.getElementById('placeholderText').style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Error loading multi-part files from IndexedDB:', error);
+                    hasVideo = false;
+                    canvasElement.style.display = 'none';
+                    document.getElementById('placeholderText').textContent = 'Error loading video files: ' + error.message;
+                    document.getElementById('placeholderText').style.display = 'block';
+                }
+            } else if (session.videoPath) {
+                // Single file session (legacy)
+                try {
+                    const blobs = await getVideoFromDB(sessionId);
+                    if (blobs && blobs.length > 0) {
                         console.log('File loaded from IndexedDB');
+                        const fileBlob = blobs[0];
                         currentVideoFile = fileBlob;
                         await loadFileIntoPlayer(fileBlob);
                     } else {
@@ -2040,7 +2080,7 @@
                     canvasElement.style.display = 'none';
                     document.getElementById('placeholderText').innerHTML = `Video: ${session.videoName}<br><span style="font-size: 13px; color: #71717A;">Click here to load the video file</span>`;
                     document.getElementById('placeholderText').style.display = 'block';
-                    }
+                }
             } else {
                 console.log('No video in session');
                 hasVideo = false;
@@ -2143,8 +2183,9 @@
         // We store dimOrder as the 5-char string and compute index from it
         let tiffDimOrder = 'XYZCT'; // default ImageJ order
 
-        async function loadTiffFile(file) {
+        async function loadTiffFile(file, opts = {}) {
             console.log('=== Loading TIFF file (UTIF, lazy) ===');
+            console.log(`[loadTiffFile ENTRY] partSwitch=${opts?.partSwitch}, file=${file?.name}, currentSessionId=${currentSessionId}`);
             try {
                 const maxFileSize = 2 * 1024 * 1024 * 1024; // 2GB limit
                 if (file.size > maxFileSize) {
@@ -2152,6 +2193,11 @@
                 }
 
                 tiffBuffer = await file.arrayBuffer();
+
+                // When switching parts, don't reset session state
+                if (opts.partSwitch) {
+                    // Skip event/frame resets — already set by loadPartFile
+                }
 
                 // Let UTIF handle decoding and report any issues
                 tiffIFDs = UTIF.decode(tiffBuffer);
@@ -2247,7 +2293,21 @@
                 // currentFrame tracks T; Z and C get their own sliders
                 isTiffFile = true;
                 hasVideo = true;
-                totalFrames = ijFrames;
+                // When switching parts in a multi-part session, preserve the session's total frames
+                const isPartSwitch = opts && opts.partSwitch === true;
+                console.log(`DEBUG START: isPartSwitch=${isPartSwitch}, ijFrames=${ijFrames}, currentSessionId=${currentSessionId}, hasSession=${!!sessions[currentSessionId]}`);
+
+                if (isPartSwitch && currentSessionId && sessions[currentSessionId]) {
+                    // Multi-part session: use the session's total frames (which is sum of all parts)
+                    const sessionTotal = sessions[currentSessionId].totalFrames;
+                    totalFrames = sessionTotal;
+                    console.log(`[BRANCH B] PART SWITCH MODE: Using session.totalFrames=${sessionTotal}`);
+                } else {
+                    // Single file or no session: use TIFF frame count
+                    totalFrames = ijFrames;
+                    console.log(`[BRANCH A] SINGLE FILE MODE: set totalFrames = ijFrames=${ijFrames}`);
+                }
+                console.log(`DEBUG END: totalFrames NOW SET TO ${totalFrames}`);
                 currentFrame = 1;
                 currentZ = 1; currentT = 1; currentC = 1;
 
@@ -2403,8 +2463,35 @@
             return imgData;
         }
 
-        function renderTiffFrame() {
+        async function renderTiffFrame() {
             if (!isTiffFile || tiffIFDs.length === 0) return;
+
+            // Handle multi-part file switching
+            if (sessions[currentSessionId]?.videoParts && videoPartFiles.length > 0) {
+                const { partIndex, localFrame } = getPartForFrame(currentFrame);
+                if (partIndex !== currentPartIndex) {
+                    await loadPartFile(partIndex);
+                    return;
+                }
+                // Use localFrame instead of currentFrame for the part
+                const ifdIndex = ijIndex(currentC, currentZ, currentT);
+                const imgData = decodeTiffFrame(ifdIndex);
+                if (!imgData) return;
+
+                if (canvasElement.width !== imgData.width || canvasElement.height !== imgData.height) {
+                    canvasElement.width  = imgData.width;
+                    canvasElement.height = imgData.height;
+                }
+
+                canvasContext.putImageData(imgData, 0, 0);
+
+                if (activeQuartile) {
+                    fullImageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                    enterQuartile(activeQuartile);
+                    return;
+                }
+                return;
+            }
 
             const ifdIndex = ijIndex(currentC, currentZ, currentT);
             const imgData = decodeTiffFrame(ifdIndex);
@@ -2490,7 +2577,7 @@
             }
         }
 
-        async function loadFileIntoPlayer(file) {
+        async function loadFileIntoPlayer(file, opts = {}) {
             showLoadingSpinner();
             try {
                 let fileName = '';
@@ -2502,16 +2589,18 @@
 
                 if (fileName.endsWith('.tif') || fileName.endsWith('.tiff')) {
                     isTiffFile = true;
-                    await loadTiffFile(file);
+                    await loadTiffFile(file, opts);
                 } else if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
                     isTiffFile = true;
                     await loadImageFile(file);
                 } else {
-                    // Video file — reset hyperstack state
+                    // Video file — reset hyperstack state (unless part switching)
                     isTiffFile = false;
-                    tiffIFDs = []; tiffBuffer = null; tiffImages = [];
-                    ijChannels = 1; ijSlices = 1; ijFrames = 1;
-                    currentZ = 1; currentT = 1; currentC = 1;
+                    if (!opts.partSwitch) {
+                        tiffIFDs = []; tiffBuffer = null; tiffImages = [];
+                        ijChannels = 1; ijSlices = 1; ijFrames = 1;
+                        currentZ = 1; currentT = 1; currentC = 1;
+                    }
                     updateHyperstackControls();
                     const url = URL.createObjectURL(file);
                     loadVideoIntoPlayer(url);
@@ -2610,13 +2699,60 @@
         function openNewSessionModal() {
             document.getElementById('newSessionModal').classList.add('active');
             document.getElementById('newSessionNameInput').value = '';
-            document.getElementById('newSessionVideoInput').value = '';
+            partFiles = [];
+            document.getElementById('partFilesList').innerHTML = '';
+            updateAddPartButton();
         }
 
         function closeNewSessionModal() {
             document.getElementById('newSessionModal').classList.remove('active');
             // Restore dropdown to current session
             updateSessionDropdown();
+        }
+
+        function addPartFileInput() {
+            if (partFiles.length >= 5) {
+                alert('Maximum 5 parts allowed');
+                return;
+            }
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'video/*,image/tiff,.tif,.tiff,image/png,image/jpeg,.png,.jpg,.jpeg';
+            input.onchange = (e) => {
+                if (e.target.files.length > 0) {
+                    partFiles.push(e.target.files[0]);
+                    renderPartsList();
+                    updateAddPartButton();
+                }
+            };
+            input.click();
+        }
+
+        function removePartFile(index) {
+            partFiles.splice(index, 1);
+            renderPartsList();
+            updateAddPartButton();
+        }
+
+        function renderPartsList() {
+            const container = document.getElementById('partFilesList');
+            container.innerHTML = '';
+            partFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f5f5f5; margin-bottom: 5px; border-radius: 4px;';
+                const sizeKB = (file.size / 1024).toFixed(1);
+                item.innerHTML = `
+                    <span style="flex: 1;"><strong>Part ${index + 1}:</strong> ${file.name} (${sizeKB} KB)</span>
+                    <button type="button" onclick="removePartFile(${index})" style="padding: 4px 8px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function updateAddPartButton() {
+            const btn = document.getElementById('addPartBtn');
+            btn.disabled = partFiles.length >= 5;
+            btn.style.opacity = partFiles.length >= 5 ? '0.5' : '1';
         }
 
         async function createNewSession() {
@@ -2627,51 +2763,70 @@
             }
 
             const sessionId = Date.now().toString();
-            const videoInput = document.getElementById('newSessionVideoInput');
 
             sessions[sessionId] = {
                 id: sessionId,
                 name: name,
                 events: [],
                 currentFrame: 1,
-                videoPath: null,
-                videoName: null,
-                videoSize: null,
                 totalFrames: 180,
                 videoFPS: 30,
                 lastModified: new Date().toISOString()
             };
 
-            if (videoInput.files.length > 0) {
-                const file = videoInput.files[0];
-                currentVideoFile = file;
-
-                // Store video metadata
-                sessions[sessionId].videoPath = file.webkitRelativePath || file.name;
-                sessions[sessionId].videoName = file.name;
-                sessions[sessionId].videoSize = file.size;
-
-                // Store file blob in IndexedDB
+            if (partFiles.length > 0) {
                 try {
-                    await storeVideoInDB(sessionId, file);
-                    console.log('File stored in IndexedDB for new session');
+                    // Calculate frame counts for each part
+                    const videoParts = [];
+                    let frameOffset = 0;
+
+                    console.log(`Creating multi-part session with ${partFiles.length} files`);
+                    for (const file of partFiles) {
+                        const frameCount = await getFrameCount(file);
+                        console.log(`Part: ${file.name}, frameCount: ${frameCount}, frameOffset: ${frameOffset}`);
+                        videoParts.push({
+                            name: file.name,
+                            size: file.size,
+                            frameCount: frameCount,
+                            frameOffset: frameOffset
+                        });
+                        frameOffset += frameCount;
+                    }
+
+                    console.log(`Total frames calculated: ${frameOffset}`);
+                    // Update session with multi-part data
+                    sessions[sessionId].videoParts = videoParts;
+                    sessions[sessionId].totalFrames = frameOffset || 180;
+
+                    // Store all blobs in IndexedDB
+                    await storeVideoInDB(sessionId, partFiles);
+                    console.log('Multi-part files stored in IndexedDB for new session');
+
+                    closeNewSessionModal();
+                    currentSessionId = sessionId;
+
+                    // Reset state for new session
+                    events = [];
+                    currentFrame = 1;
+                    currentEventId = null;
+                    totalFrames = sessions[sessionId].totalFrames;
+                    videoFPS = 30;
+                    currentPartIndex = -1;
+
+                    saveSessions();
+                    updateSessionDropdown();
+
+                    // Load first part into player
+                    videoPartFiles = partFiles;
+                    console.log(`[createNewSession] Before loadPartFile: totalFrames=${totalFrames}, session.totalFrames=${sessions[sessionId].totalFrames}`);
+                    await loadPartFile(0);
+                    console.log(`[createNewSession] After loadPartFile: totalFrames=${totalFrames}, session.totalFrames=${sessions[sessionId].totalFrames}`);
                 } catch (error) {
-                    console.error('Failed to store file in IndexedDB:', error);
+                    console.error('Error creating multi-part session:', error);
+                    alert('Error creating session: ' + error.message);
+                    delete sessions[sessionId];
+                    saveSessions();
                 }
-
-                closeNewSessionModal();
-                currentSessionId = sessionId;
-
-                // Reset state for new session
-                events = [];
-                currentFrame = 1;
-                currentEventId = null;
-                totalFrames = 180;
-                videoFPS = 30;
-
-                saveSessions();
-                updateSessionDropdown();
-                await loadFileIntoPlayer(file);
             } else {
                 closeNewSessionModal();
                 currentSessionId = sessionId;
@@ -2685,6 +2840,78 @@
 
                 saveSessions();
                 loadSession(sessionId);
+            }
+        }
+
+        // Helper: Get frame count from TIFF or video file
+        async function getFrameCount(file) {
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.tif') || fileName.endsWith('.tiff')) {
+                // TIFF: decode to get frame count
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const ifds = UTIF.decode(buffer);
+                    console.log(`getFrameCount: ${file.name} - decoded ${ifds ? ifds.length : 0} frames`);
+                    return ifds && ifds.length > 0 ? ifds.length : 1;
+                } catch (error) {
+                    console.error('Error decoding TIFF in getFrameCount:', error);
+                    return 1;
+                }
+            } else if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+                // Single image = 1 frame
+                console.log(`getFrameCount: ${file.name} - single image, 1 frame`);
+                return 1;
+            } else {
+                // Video: use temporary element to get duration
+                return new Promise((resolve) => {
+                    const url = URL.createObjectURL(file);
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.onloadedmetadata = () => {
+                        const frameCount = Math.ceil(video.duration * 30); // assume 30 FPS
+                        console.log(`getFrameCount: ${file.name} - video duration ${video.duration}s = ${frameCount} frames`);
+                        URL.revokeObjectURL(url);
+                        resolve(frameCount);
+                    };
+                    video.onerror = () => {
+                        console.error(`getFrameCount: ${file.name} - video load error`);
+                        URL.revokeObjectURL(url);
+                        resolve(1);
+                    };
+                });
+            }
+        }
+
+        // Helper: Get part index and local frame for a given absolute frame
+        function getPartForFrame(frame) {
+            if (!sessions[currentSessionId] || !sessions[currentSessionId].videoParts) {
+                return { partIndex: 0, localFrame: frame };
+            }
+            const parts = sessions[currentSessionId].videoParts;
+            for (let i = 0; i < parts.length; i++) {
+                const p = parts[i];
+                if (frame >= p.frameOffset && frame < p.frameOffset + p.frameCount) {
+                    return { partIndex: i, localFrame: frame - p.frameOffset };
+                }
+            }
+            // Default to last part
+            const lastPart = parts[parts.length - 1];
+            return { partIndex: parts.length - 1, localFrame: frame - lastPart.frameOffset };
+        }
+
+        // Helper: Load a specific part file into the player
+        async function loadPartFile(partIndex) {
+            if (partIndex === currentPartIndex) return;
+            showLoadingSpinner();
+            try {
+                currentPartIndex = partIndex;
+                const file = videoPartFiles[partIndex];
+                await loadFileIntoPlayer(file, { partSwitch: true });
+            } catch (error) {
+                console.error('Error loading part file:', error);
+                alert('Error loading file: ' + error.message);
+            } finally {
+                hideLoadingSpinner();
             }
         }
 
@@ -3218,11 +3445,20 @@
         }
 
         // Render current video frame
-        function renderVideoFrame() {
+        async function renderVideoFrame() {
             // If it's a TIFF file, use TIFF rendering
             if (isTiffFile) {
-                renderTiffFrame();
+                await renderTiffFrame();
                 return;
+            }
+
+            // Handle multi-part file switching
+            if (sessions[currentSessionId]?.videoParts && videoPartFiles.length > 0) {
+                const { partIndex, localFrame } = getPartForFrame(currentFrame);
+                if (partIndex !== currentPartIndex) {
+                    await loadPartFile(partIndex);
+                    return;
+                }
             }
 
             console.log('=== renderVideoFrame called ===');
@@ -3791,6 +4027,7 @@
 
         // Update UI
         function updateUI() {
+            console.log(`[updateUI] totalFrames=${totalFrames}, currentFrame=${currentFrame}, hasVideo=${hasVideo}`);
             const imageControls = document.getElementById('imageControls');
             if (imageControls) imageControls.style.display = hasVideo ? 'flex' : 'none';
             if (hasVideo) applyZoomTransform();
@@ -4438,9 +4675,18 @@
         }
 
         // Capture a specific TIFF frame (c, z, t) to a PNG blob
-        function captureFrameImage(t, z, c, rect = null) {
+        async function captureFrameImage(frame, z, c, rect = null) {
+            // Handle multi-part: ensure correct part is loaded
+            if (sessions[currentSessionId]?.videoParts && videoPartFiles.length > 0) {
+                const { partIndex, localFrame } = getPartForFrame(frame);
+                if (partIndex !== currentPartIndex) {
+                    await loadPartFile(partIndex);
+                }
+                // Note: we still use the passed-in frame value for t (which is relative to the part)
+            }
+
             const savedT = currentT, savedZ = currentZ, savedC = currentC;
-            currentT = t; currentZ = z; currentC = c;
+            currentT = frame; currentZ = z; currentC = c;
             const ifdIndex = ijIndex(currentC, currentZ, currentT);
             const imgData = decodeTiffFrame(ifdIndex);
             currentT = savedT; currentZ = savedZ; currentC = savedC;
@@ -4472,9 +4718,57 @@
         }
 
         // Capture current video frame to a PNG blob
-        function captureVideoFrameImage(frame, rect = null) {
-            return new Promise(resolve => {
+        async function captureVideoFrameImage(frame, rect = null) {
+            return new Promise(async resolve => {
                 if (!hasVideo || isTiffFile) { resolve(null); return; }
+
+                // Handle multi-part: ensure correct part is loaded
+                if (sessions[currentSessionId]?.videoParts && videoPartFiles.length > 0) {
+                    const { partIndex, localFrame } = getPartForFrame(frame);
+                    if (partIndex !== currentPartIndex) {
+                        await loadPartFile(partIndex);
+                    }
+                    // Use localFrame for the actual video playback
+                    const savedFrame = currentFrame;
+                    const frameTime = Math.max(0, (localFrame - 1) / videoFPS);
+                    videoElement.currentTime = Math.min(frameTime, videoElement.duration - 0.001);
+
+                    videoElement.onseeked = () => {
+                        const offscreen = document.createElement('canvas');
+                        const srcW = videoElement.videoWidth;
+                        const srcH = videoElement.videoHeight;
+
+                        // If rectangle crop requested, crop the image
+                        if (rect && rect.width > 0 && rect.height > 0) {
+                            const x = Math.max(0, Math.min(rect.x, srcW - 1));
+                            const y = Math.max(0, Math.min(rect.y, srcH - 1));
+                            const w = Math.min(rect.width, srcW - x);
+                            const h = Math.min(rect.height, srcH - y);
+
+                            offscreen.width = w;
+                            offscreen.height = h;
+                        } else {
+                            offscreen.width = srcW;
+                            offscreen.height = srcH;
+                        }
+
+                        const ctx = offscreen.getContext('2d');
+                        if (rect && rect.width > 0 && rect.height > 0) {
+                            ctx.drawImage(videoElement, rect.x, rect.y, rect.width, rect.height, 0, 0, offscreen.width, offscreen.height);
+                        } else {
+                            ctx.drawImage(videoElement, 0, 0);
+                        }
+
+                        offscreen.toBlob(blob => {
+                            currentFrame = savedFrame;
+                            renderVideoFrame();
+                            resolve(blob);
+                        }, 'image/png');
+                    };
+                    return;
+                }
+
+                // Single-part legacy path
                 const savedFrame = currentFrame;
                 const frameTime = Math.max(0, (frame - 1) / videoFPS);
                 videoElement.currentTime = Math.min(frameTime, videoElement.duration - 0.001);
@@ -4756,6 +5050,28 @@
             zoomScale: zoomScale,
             panX: panX,
             panY: panY
+        });
+
+        // Expose multi-part functions and globals for testing
+        window.getPartForFrame = getPartForFrame;
+        window.loadPartFile = loadPartFile;
+        window.getFrameCount = getFrameCount;
+        window.addPartFileInput = addPartFileInput;
+        window.removePartFile = removePartFile;
+        window.renderPartsList = renderPartsList;
+        window.updateAddPartButton = updateAddPartButton;
+
+        // Expose state for testing
+        window.getSessions = () => sessions;
+        Object.defineProperty(window, 'sessions', {
+            get: () => sessions,
+            set: (value) => { Object.assign(sessions, value); },
+            configurable: true
+        });
+        Object.defineProperty(window, 'currentSessionId', {
+            get: () => currentSessionId,
+            set: (value) => { currentSessionId = value; },
+            configurable: true
         });
 
         // Initialize app
