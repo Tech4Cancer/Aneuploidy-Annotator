@@ -2185,7 +2185,6 @@
 
         async function loadTiffFile(file, opts = {}) {
             console.log('=== Loading TIFF file (UTIF, lazy) ===');
-            console.log(`[loadTiffFile ENTRY] partSwitch=${opts?.partSwitch}, file=${file?.name}, currentSessionId=${currentSessionId}`);
             try {
                 const maxFileSize = 2 * 1024 * 1024 * 1024; // 2GB limit
                 if (file.size > maxFileSize) {
@@ -2295,19 +2294,13 @@
                 hasVideo = true;
                 // When switching parts in a multi-part session, preserve the session's total frames
                 const isPartSwitch = opts && opts.partSwitch === true;
-                console.log(`DEBUG START: isPartSwitch=${isPartSwitch}, ijFrames=${ijFrames}, currentSessionId=${currentSessionId}, hasSession=${!!sessions[currentSessionId]}`);
-
                 if (isPartSwitch && currentSessionId && sessions[currentSessionId]) {
                     // Multi-part session: use the session's total frames (which is sum of all parts)
-                    const sessionTotal = sessions[currentSessionId].totalFrames;
-                    totalFrames = sessionTotal;
-                    console.log(`[BRANCH B] PART SWITCH MODE: Using session.totalFrames=${sessionTotal}`);
+                    totalFrames = sessions[currentSessionId].totalFrames;
                 } else {
                     // Single file or no session: use TIFF frame count
                     totalFrames = ijFrames;
-                    console.log(`[BRANCH A] SINGLE FILE MODE: set totalFrames = ijFrames=${ijFrames}`);
                 }
-                console.log(`DEBUG END: totalFrames NOW SET TO ${totalFrames}`);
                 currentFrame = 1;
                 currentZ = 1; currentT = 1; currentC = 1;
 
@@ -2818,9 +2811,7 @@
 
                     // Load first part into player
                     videoPartFiles = partFiles;
-                    console.log(`[createNewSession] Before loadPartFile: totalFrames=${totalFrames}, session.totalFrames=${sessions[sessionId].totalFrames}`);
                     await loadPartFile(0);
-                    console.log(`[createNewSession] After loadPartFile: totalFrames=${totalFrames}, session.totalFrames=${sessions[sessionId].totalFrames}`);
                 } catch (error) {
                     console.error('Error creating multi-part session:', error);
                     alert('Error creating session: ' + error.message);
@@ -4027,7 +4018,6 @@
 
         // Update UI
         function updateUI() {
-            console.log(`[updateUI] totalFrames=${totalFrames}, currentFrame=${currentFrame}, hasVideo=${hasVideo}`);
             const imageControls = document.getElementById('imageControls');
             if (imageControls) imageControls.style.display = hasVideo ? 'flex' : 'none';
             if (hasVideo) applyZoomTransform();
@@ -4050,7 +4040,7 @@
                 currentT = currentFrame;
                 const tSlider = document.getElementById('tFrameSlider');
                 tSlider.value = currentT;
-                document.getElementById('tFrameValue').textContent = `${currentT} / ${ijFrames}`;
+                document.getElementById('tFrameValue').textContent = `${currentT} / ${totalFrames}`;
             }
 
             // Show T-frame slider when there are events, even without TIFF file
