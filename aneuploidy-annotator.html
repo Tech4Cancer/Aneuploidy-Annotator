@@ -2090,11 +2090,36 @@
                     document.getElementById('placeholderText').style.display = 'block';
                 }
             } else {
-                console.log('No video in session');
-                hasVideo = false;
-                canvasElement.style.display = 'none';
-                document.getElementById('placeholderText').textContent = 'Upload a video to get started';
-                document.getElementById('placeholderText').style.display = 'block';
+                // Fallback: try to load from IndexedDB anyway (maybe it's an old multi-part session that lost metadata)
+                try {
+                    const blobs = await getVideoFromDB(sessionId);
+                    if (blobs && blobs.length > 0) {
+                        console.log('Found video in IndexedDB despite missing videoParts metadata');
+                        if (blobs.length > 1) {
+                            // Multi-part files in IndexedDB
+                            videoPartFiles = blobs;
+                            currentPartIndex = -1;
+                            await loadPartFile(0);
+                        } else {
+                            // Single file in IndexedDB
+                            currentVideoFile = blobs[0];
+                            await loadFileIntoPlayer(blobs[0]);
+                        }
+                    } else {
+                        console.log('No video in session');
+                        hasVideo = false;
+                        canvasElement.style.display = 'none';
+                        document.getElementById('placeholderText').textContent = 'Upload a video to get started';
+                        document.getElementById('placeholderText').style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Error checking IndexedDB as fallback:', error);
+                    console.log('No video in session');
+                    hasVideo = false;
+                    canvasElement.style.display = 'none';
+                    document.getElementById('placeholderText').textContent = 'Upload a video to get started';
+                    document.getElementById('placeholderText').style.display = 'block';
+                }
             }
 
             updateSessionDropdown();
