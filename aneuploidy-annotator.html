@@ -1971,19 +1971,27 @@
         function saveCurrentSession() {
             if (!currentSessionId) return;
 
-            sessions[currentSessionId] = {
+            const sessionData = {
                 id: currentSessionId,
                 name: sessions[currentSessionId].name,
                 events: events,
                 repImages: repImages,
                 currentFrame: currentFrame,
-                videoPath: sessions[currentSessionId].videoPath,
-                videoName: sessions[currentSessionId].videoName,
-                videoSize: sessions[currentSessionId].videoSize,
                 totalFrames: totalFrames,
                 videoFPS: videoFPS,
                 lastModified: new Date().toISOString()
             };
+
+            // Preserve videoParts for multi-part sessions, or videoPath for legacy single-file sessions
+            if (sessions[currentSessionId].videoParts) {
+                sessionData.videoParts = sessions[currentSessionId].videoParts;
+            } else {
+                sessionData.videoPath = sessions[currentSessionId].videoPath;
+                sessionData.videoName = sessions[currentSessionId].videoName;
+                sessionData.videoSize = sessions[currentSessionId].videoSize;
+            }
+
+            sessions[currentSessionId] = sessionData;
 
             // Save last viewed session ID
             localStorage.setItem('lastViewedSessionId', currentSessionId);
